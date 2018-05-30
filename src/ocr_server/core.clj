@@ -336,20 +336,56 @@
    )
   @decoded-signs))
 
+(defn save-parameters
+ "Save parameters for reading calibration"
+ [request-body]
+ (let [_id (:_id request-body)
+       light-value (read-string (:light-value request-body))
+       contrast-value (read-string (:contrast-value request-body))
+       space-value (read-string (:space-value request-body))
+       hooks-value (read-string (:hooks-value request-body))
+       matching-value (read-string (:matching-value request-body))]
+  (try
+   (mon/mongodb-update-by-id
+     "document"
+     _id
+     {:light light-value
+      :contrast contrast-value
+      :space space-value
+      :hooks hooks-value
+      :matching matching-value})
+   {:status  (stc/ok)
+    :headers {(eh/content-type) (mt/text-plain)}
+    :body    (str {:status "success"})}
+   (catch Exception ex
+     (println ex)
+     {:status  (stc/internal-server-error)
+      :headers {(eh/content-type) (mt/text-plain)}
+      :body    (str {:status  "error"
+                     :error-message (.getMessage ex)})}))
+  ))
+
 (defn read-image
  "Read text from image"
  [request-body]
- (let [light-value (read-string (:light-value request-body))
+ (let [_id (:_id request-body)
+       light-value (read-string (:light-value request-body))
        contrast-value (read-string (:contrast-value request-body))
-       document-signs (get-document-signs (:_id request-body))
+       space-value (read-string (:space-value request-body))
+       hooks-value (read-string (:hooks-value request-body))
+       matching-value (read-string (:matching-value request-body))
+       document-signs (get-document-signs _id)
        splitted-base64 (clojure.string/split (:image-src request-body) #"base64,")
        image-base64 (get splitted-base64 1)
        image-byte-array (.decode base64-decoder image-base64)
        signs-images (ocr/read-image-fn
-                       image-byte-array
-                       light-value
-                       contrast-value
-                       document-signs)
+                      image-byte-array
+                      light-value
+                      contrast-value
+                      space-value
+                      hooks-value
+                      matching-value
+                      document-signs)
        signs-images-atom (atom [])]
   (doseq [sign-image signs-images]
    (if (instance? BufferedImage
@@ -458,6 +494,11 @@
        request
        (println request)
        (save-sign (parse-body request))
+  )
+ (POST "/save-parameters"
+       request
+       (println request)
+       (save-parameters (parse-body request))
   )
  (route/resources "/")
  (route/not-found (not-found))
