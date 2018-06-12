@@ -2,7 +2,6 @@
  (:use [compojure.core :only [defroutes GET POST DELETE OPTIONS]]
        [clojure.data :only [diff]])
  (:require
-      [clojure.java.io :refer [file]]
       [compojure.handler :as chandler]
       [compojure.route :as route]
       [ring.adapter.jetty :refer [run-jetty]]
@@ -133,167 +132,162 @@
    @projection))
 
 (defn get-entities
-  "Prepare data for table"
-  [request-body]
-  (println request-body)
-  (if (empty? (:entity-filter request-body))
-   (if (:pagination request-body)
-    (let [current-page     (:current-page request-body)
-          rows             (:rows request-body)
-          count-entities   (mon/mongodb-count
-                            (:entity-type request-body)
-                            (:entity-filter request-body))
-          number-of-pages  (if (:pagination request-body)
-                            (utils/round-up count-entities rows)
-                            nil)
-          current-page     (if (= current-page number-of-pages)
-                            (dec current-page)
-                            current-page)
-          entity-type    (:entity-type request-body)
-          entity-filter  (:entity-filter request-body)
-          projection-vector  (:projection request-body)
-          projection-include  (:projection-include request-body)
-          projection     (build-projection projection-vector
-                                           projection-include)
-          qsort          (:qsort request-body)
-          collation      (:collation request-body)
-          final-result   (atom [])
-          db-result      (mon/mongodb-find
-                          entity-type
-                          entity-filter
-                          projection
-                          qsort
-                          rows
-                          (* current-page
-                             rows)
-                          collation)]
-     (if (not= -1 current-page)
-      (doseq [single-result db-result]
-       (let [ekeys  (if projection-include
-                     projection-vector
-                     (keys single-result))
-             entity-as-vector  (atom [])]
-        (swap! entity-as-vector conj (:_id single-result))
-        (doseq [ekey ekeys]
-         (swap! entity-as-vector conj (ekey single-result))
-         )
-        (swap! final-result conj @entity-as-vector))
-       )
-      nil)
-     {:status  (stc/ok)
-      :headers {(eh/content-type) (mt/text-plain)}
-      :body    (str {:status  "success"
-                     :data       @final-result
-                     :pagination {:current-page     current-page
-                                  :rows             rows
-                                  :total-row-count  count-entities}
-                     })})
-    (let [entity-type    (:entity-type request-body)
-          entity-filter  (:entity-filter request-body)
-          projection-vector  (:projection request-body)
-          projection-include  (:projection-include request-body)
-          projection     (build-projection projection-vector
-                                           projection-include)
-          qsort          (:qsort request-body)
-          collation      (:collation request-body)
-          ;final-result   (atom [])
-          db-result      (mon/mongodb-find
-                          entity-type
-                          entity-filter
-                          projection
-                          qsort)]
-     {:status  (stc/ok)
-      :headers {(eh/content-type) (mt/text-plain)}
-      :body    (str {:status "success"
-                     :data db-result})}
-     )
+ "Prepare data for table"
+ [request-body]
+ (if (empty? (:entity-filter request-body))
+  (if (:pagination request-body)
+   (let [current-page     (:current-page request-body)
+         rows             (:rows request-body)
+         count-entities   (mon/mongodb-count
+                           (:entity-type request-body)
+                           (:entity-filter request-body))
+         number-of-pages  (if (:pagination request-body)
+                           (utils/round-up count-entities rows)
+                           nil)
+         current-page     (if (= current-page number-of-pages)
+                           (dec current-page)
+                           current-page)
+         entity-type    (:entity-type request-body)
+         entity-filter  (:entity-filter request-body)
+         projection-vector  (:projection request-body)
+         projection-include  (:projection-include request-body)
+         projection     (build-projection projection-vector
+                                          projection-include)
+         qsort          (:qsort request-body)
+         collation      (:collation request-body)
+         final-result   (atom [])
+         db-result      (mon/mongodb-find
+                         entity-type
+                         entity-filter
+                         projection
+                         qsort
+                         rows
+                         (* current-page
+                            rows)
+                         collation)]
+    (if (not= -1 current-page)
+     (doseq [single-result db-result]
+      (let [ekeys  (if projection-include
+                    projection-vector
+                    (keys single-result))
+            entity-as-vector  (atom [])]
+       (swap! entity-as-vector conj (:_id single-result))
+       (doseq [ekey ekeys]
+        (swap! entity-as-vector conj (ekey single-result))
+        )
+       (swap! final-result conj @entity-as-vector))
+      )
+     nil)
+    {:status  (stc/ok)
+     :headers {(eh/content-type) (mt/text-plain)}
+     :body    (str {:status  "success"
+                    :data       @final-result
+                    :pagination {:current-page     current-page
+                                 :rows             rows
+                                 :total-row-count  count-entities}
+                    })})
+   (let [entity-type    (:entity-type request-body)
+         entity-filter  (:entity-filter request-body)
+         projection-vector  (:projection request-body)
+         projection-include  (:projection-include request-body)
+         projection     (build-projection projection-vector
+                                          projection-include)
+         qsort          (:qsort request-body)
+         collation      (:collation request-body)
+         ;final-result   (atom [])
+         db-result      (mon/mongodb-find
+                         entity-type
+                         entity-filter
+                         projection
+                         qsort)]
+    {:status  (stc/ok)
+     :headers {(eh/content-type) (mt/text-plain)}
+     :body    (str {:status "success"
+                    :data db-result})}
     )
-   
-   {:status  (stc/bad-request)
-    :headers {(eh/content-type) (mt/text-plain)}
-    :body    (str {:status  "error"
-                   :error-message "404 Bad request"})}))
+   )
+  
+  {:status  (stc/bad-request)
+   :headers {(eh/content-type) (mt/text-plain)}
+   :body    (str {:status  "error"
+                  :error-message "404 Bad request"})}))
 
 (defn get-entity
-  "Prepare requested entity for response"
-  [request-body]
-  (let [entity  (mon/mongodb-find-by-id (:entity-type request-body)
-                                        (:_id (:entity-filter request-body))
-                 )
-        entity  (assoc entity :_id (str (:_id entity))
-                 )]
-   (if entity
-    {:status (stc/ok)
-     :headers {(eh/content-type) (mt/text-plain)}
-     :body   (str {:status  "success"
-                   :data  entity})}
-    {:status (stc/not-found)
-     :headers {(eh/content-type) (mt/text-plain)}
-     :body   (str {:status  "error"
-                   :error-message "There is no entity, for given criteria."})}))
-  )
+ "Prepare requested entity for response"
+ [request-body]
+ (let [entity  (mon/mongodb-find-by-id (:entity-type request-body)
+                                       (:_id (:entity-filter request-body))
+                )
+       entity  (assoc entity :_id (str (:_id entity))
+                )]
+  (if entity
+   {:status (stc/ok)
+    :headers {(eh/content-type) (mt/text-plain)}
+    :body   (str {:status  "success"
+                  :data  entity})}
+   {:status (stc/not-found)
+    :headers {(eh/content-type) (mt/text-plain)}
+    :body   (str {:status  "error"
+                  :error-message "There is no entity, for given criteria."})}))
+ )
 
 (defn update-entity
-  "Update entity"
-  [request-body]
-  (try
-   (mon/mongodb-update-by-id (:entity-type request-body)
-                             (:_id request-body)
-                             (:entity request-body))
-   {:status  (stc/ok)
+ "Update entity"
+ [request-body]
+ (try
+  (mon/mongodb-update-by-id (:entity-type request-body)
+                            (:_id request-body)
+                            (:entity request-body))
+  {:status  (stc/ok)
+   :headers {(eh/content-type) (mt/text-plain)}
+   :body    (str {:status "success"})}
+  (catch Exception ex
+   (println (.getMessage ex))
+   {:status  (stc/internal-server-error)
     :headers {(eh/content-type) (mt/text-plain)}
-    :body    (str {:status "success"})}
-   (catch Exception ex
-    (println (.getMessage ex))
-    {:status  (stc/internal-server-error)
-     :headers {(eh/content-type) (mt/text-plain)}
-     :body    (str {:status "error"})}))
-  )
+    :body    (str {:status "error"})}))
+ )
 
 (defn insert-entity
-  "Insert entity"
-  [request-body]
-  (try
-   (mon/mongodb-insert-one (:entity-type request-body)
-                           (:entity request-body))
-   {:status  (stc/ok)
+ "Insert entity"
+ [request-body]
+ (try
+  (mon/mongodb-insert-one (:entity-type request-body)
+                          (:entity request-body))
+  {:status  (stc/ok)
+   :headers {(eh/content-type) (mt/text-plain)}
+   :body    (str {:status "success"})}
+  (catch Exception ex
+   (println (.getMessage ex))
+   {:status  (stc/internal-server-error)
     :headers {(eh/content-type) (mt/text-plain)}
-    :body    (str {:status "success"})}
-   (catch Exception ex
-    (println (.getMessage ex))
-    {:status  (stc/internal-server-error)
-     :headers {(eh/content-type) (mt/text-plain)}
-     :body    (str {:status "error"})}))
-  )
+    :body    (str {:status "error"})}))
+ )
 
 (defn delete-entity
-  "Delete entity"
-  [request-body]
-  (try
-   (mon/mongodb-delete-by-id (:entity-type request-body)
-                             (:_id (:entity-filter request-body))
-    )
-   {:status  (stc/ok)
+ "Delete entity"
+ [request-body]
+ (try
+  (mon/mongodb-delete-by-id (:entity-type request-body)
+                            (:_id (:entity-filter request-body))
+   )
+  {:status  (stc/ok)
+   :headers {(eh/content-type) (mt/text-plain)}
+   :body    (str {:status "success"})}
+  (catch Exception ex
+   (println (.getMessage ex))
+   {:status  (stc/internal-server-error)
     :headers {(eh/content-type) (mt/text-plain)}
-    :body    (str {:status "success"})}
-   (catch Exception ex
-    (println (.getMessage ex))
-    {:status  (stc/internal-server-error)
-     :headers {(eh/content-type) (mt/text-plain)}
-     :body    (str {:status "error"})}))
-  )
+    :body    (str {:status "error"})}))
+ )
 
 (defn process-image
  "Process image with parameters from front end"
- [request-body]
- (let [light-value (read-string (:light-value request-body))
-       contrast-value (read-string (:contrast-value request-body))
-       splitted-base64 (clojure.string/split (:image-src request-body) #"base64,")
-       image-base64 (get splitted-base64 1)
-       image-byte-array (.decode base64-decoder image-base64)
-       image-is (ByteArrayInputStream. image-byte-array)
-       image (ImageIO/read image-is)
-       height (.getHeight image)
+ [light-value
+  contrast-value
+  image
+  image-mime-type]
+ (let [height (.getHeight image)
        width (.getWidth image)
        image (ocr/grayscale-contrast-fn
                image
@@ -305,11 +299,53 @@
        debug (ImageIO/write image "jpg" image-os)
        new-image-byte-array (.toByteArray image-os)
        new-image-base64 (.encodeToString base64-encoder new-image-byte-array)
-       new-image-base64 (str (get splitted-base64 0) "base64," new-image-base64)]
+       new-image-base64 (str image-mime-type "base64," new-image-base64)]
+   new-image-base64))
+
+(defn process-images
+ "Process image with parameters from front end"
+ [request-body]
+ ;PROGRESS BAR
+ (ocr/process-images-reset-progress-value-fn)
+ (let [light-value (read-string (:light-value request-body))
+       contrast-value (read-string (:contrast-value request-body))
+       image-srcs (:image-srcs request-body)
+       images (atom [])
+       new-images-base64 (atom [])]
+  (doseq [image-src image-srcs]
+   (let [splitted-base64 (clojure.string/split image-src #"base64,")
+         image-base64 (get splitted-base64 1)
+         image (ocr/read-base64-image-fn
+                 image-base64)
+         height (.getHeight image)
+         width (.getWidth image)]
+    ;PROGRESS BAR
+    (ocr/increase-total-pixels
+      width
+      height)
+    (swap!
+      images
+      conj
+      [image
+       (get splitted-base64 0)]))
+   )
+  (doseq [[image
+           image-mime-type] @images]
+   (swap!
+     new-images-base64
+     conj
+     (process-image
+       light-value
+       contrast-value
+       image
+       image-mime-type))
+   )
+  ;PROGRESS BAR
+  (ocr/process-images-reset-progress-value-fn)
   {:status  (stc/ok)
    :headers {(eh/content-type) (mt/text-plain)}
    :body    (str {:status "success"
-                  :src new-image-base64})}))
+                  :srcs @new-images-base64})}))
 
 (defn get-document-signs
  "Get signs from particular document"
@@ -344,7 +380,9 @@
        contrast-value (read-string (:contrast-value request-body))
        space-value (read-string (:space-value request-body))
        hooks-value (read-string (:hooks-value request-body))
-       matching-value (read-string (:matching-value request-body))]
+       matching-value (read-string (:matching-value request-body))
+       threads-value (read-string (:threads-value request-body))
+       rows-threads-value (read-string (:rows-threads-value request-body))]
   (try
    (mon/mongodb-update-by-id
      "document"
@@ -353,7 +391,9 @@
       :contrast contrast-value
       :space space-value
       :hooks hooks-value
-      :matching matching-value})
+      :matching matching-value
+      :threads threads-value
+      :rows-threads rows-threads-value})
    {:status  (stc/ok)
     :headers {(eh/content-type) (mt/text-plain)}
     :body    (str {:status "success"})}
@@ -365,6 +405,50 @@
                      :error-message (.getMessage ex)})}))
   ))
 
+(defn agent-read-image
+ ""
+ [agent-value
+  image-byte-array
+  light-value
+  contrast-value
+  space-value
+  hooks-value
+  matching-value
+  threads-value
+  rows-threads-value
+  document-signs
+  splitted-base64]
+ (let [[read-text
+        unknown-signs-images] (ocr/read-image-fn
+                                image-byte-array
+                                light-value
+                                contrast-value
+                                space-value
+                                hooks-value
+                                matching-value
+                                threads-value
+                                rows-threads-value
+                                document-signs)
+       unknown-signs-images-atom (atom [])]
+   (doseq [sign-image unknown-signs-images]
+     (let [image-os (ByteArrayOutputStream.)
+           debug (ImageIO/write sign-image "jpg" image-os)
+           new-image-byte-array (.toByteArray image-os)
+           new-image-base64 (.encodeToString base64-encoder new-image-byte-array)
+           new-image-base64 (str (get splitted-base64 0) "base64," new-image-base64)]
+       (swap!
+         unknown-signs-images-atom
+         conj
+         new-image-base64))
+    )
+   {:status  (stc/ok)
+    :headers {(eh/content-type) (mt/text-plain)}
+    :body    (str {:status "success"
+                   :images @unknown-signs-images-atom
+                   :read-text read-text
+                   :job-s-done true})})
+ )
+
 (defn read-image
  "Read text from image"
  [request-body]
@@ -374,40 +458,43 @@
        space-value (read-string (:space-value request-body))
        hooks-value (read-string (:hooks-value request-body))
        matching-value (read-string (:matching-value request-body))
+       threads-value (read-string (:threads-value request-body))
+       rows-threads-value (read-string (:rows-threads-value request-body))
        document-signs (get-document-signs _id)
        splitted-base64 (clojure.string/split (:image-src request-body) #"base64,")
        image-base64 (get splitted-base64 1)
-       image-byte-array (.decode base64-decoder image-base64)
-       signs-images (ocr/read-image-fn
-                      image-byte-array
-                      light-value
-                      contrast-value
-                      space-value
-                      hooks-value
-                      matching-value
-                      document-signs)
-       signs-images-atom (atom [])]
-  (doseq [sign-image signs-images]
-   (if (instance? BufferedImage
-                  sign-image)
-    (let [image-os (ByteArrayOutputStream.)
-          debug (ImageIO/write sign-image "jpg" image-os)
-          new-image-byte-array (.toByteArray image-os)
-          new-image-base64 (.encodeToString base64-encoder new-image-byte-array)
-          new-image-base64 (str (get splitted-base64 0) "base64," new-image-base64)]
-     (swap!
-       signs-images-atom
-       conj
-       new-image-base64))
-     (swap!
-       signs-images-atom
-       conj
-       sign-image))
-   )
+       image-byte-array (.decode base64-decoder image-base64)]
+  (def
+    read-image-result-agent
+    (agent nil))
+  (send
+    read-image-result-agent
+    agent-read-image
+     image-byte-array
+     light-value
+     contrast-value
+     space-value
+     hooks-value
+     matching-value
+     threads-value
+     rows-threads-value
+     document-signs
+     splitted-base64)
   {:status  (stc/ok)
    :headers {(eh/content-type) (mt/text-plain)}
-   :body    (str {:status "success"
-                  :images @signs-images-atom})}))
+   :body    (str {:status "success"})})
+ )
+
+(defn check-read-image-progress
+ ""
+ [request-body]
+ (if @read-image-result-agent
+   (let [response @read-image-result-agent]
+     response)
+   {:status  (stc/ok)
+    :headers {(eh/content-type) (mt/text-plain)}
+    :body    (str {:status "success"
+                   :job-s-done false})}))
 
 (defn save-sign
  "Save sign with document"
@@ -429,6 +516,29 @@
   {:status  (stc/ok)
    :headers {(eh/content-type) (mt/text-plain)}
    :body    (str {:status "success"})}))
+
+(defn check-progress
+ ""
+ [request-body]
+ (let [check-request (:check-request request-body)
+       response (atom 0)]
+  (when (= check-request
+           "/clojure/process-images")
+   (reset!
+     response
+     (ocr/process-images-calculate-progress-value-fn))
+   )
+  (when (= check-request
+           "/clojure/read-image")
+   (reset!
+     response
+     (ocr/read-image-calculate-progress-value-fn))
+   )
+  {:status  (stc/ok)
+   :headers {(eh/content-type) (mt/text-plain)}
+   :body    (str {:status "success"
+                  :progress-value (str @response)})}
+  ))
 
 (defn not-found
  "Requested action not found"
@@ -480,15 +590,20 @@
        (println request)
        (delete-entity (parse-body request))
   )
- (POST "/process-image"
+ (POST "/process-images"
        request
        (println request)
-       (process-image (parse-body request))
+       (process-images (parse-body request))
   )
  (POST "/read-image"
        request
        (println request)
        (read-image (parse-body request))
+  )
+ (POST "/check-read-image-progress"
+       request
+       ;(println request)
+       (check-read-image-progress (parse-body request))
   )
  (POST "/save-sign"
        request
@@ -499,6 +614,11 @@
        request
        (println request)
        (save-parameters (parse-body request))
+  )
+ (POST "/check-progress"
+       request
+       ;(println request)
+       (check-progress (parse-body request))
   )
  (route/resources "/")
  (route/not-found (not-found))
@@ -542,7 +662,7 @@
       (let []
        (println "Server instance does not exist")
        (try
-        (reset! server (run-jetty handler { :port 1606 :join? false}))
+        (reset! server (run-jetty handler {:port 1606 :join? false}))
         (mon/mongodb-connect db-name)
         (catch Exception ex
                (println ex))
