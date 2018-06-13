@@ -1,23 +1,19 @@
 (ns ocr-server.core
- (:use [compojure.core :only [defroutes GET POST DELETE OPTIONS]]
-       [clojure.data :only [diff]])
- (:require
-      [compojure.handler :as chandler]
-      [compojure.route :as route]
-      [ring.adapter.jetty :refer [run-jetty]]
-      [ring.middleware.cors :refer [wrap-cors]]
-      [utils-lib.core :as utils]
-      [mongo-lib.core :as mon]
-      [ajax-lib.http.entity-header :as eh]
-      [ajax-lib.http.response-header :as rsh]
-      [ajax-lib.http.mime-type :as mt]
-      [ajax-lib.http.status-code :as stc]
-      [ocr-lib.core :as ocr])
+ (:require [server-lib.core :as srvr]
+           [utils-lib.core :as utils]
+           [mongo-lib.core :as mon]
+           [ajax-lib.http.entity-header :as eh]
+           [ajax-lib.http.response-header :as rsh]
+           [ajax-lib.http.mime-type :as mt]
+           [ajax-lib.http.status-code :as stc]
+           [ocr-lib.core :as ocr])
  (:import [java.util Base64]
           [java.io ByteArrayInputStream
                    ByteArrayOutputStream]
           [java.awt.image BufferedImage]
           [javax.imageio ImageIO]))
+
+(def db-name "ocr-db")
 
 (def base64-decoder (Base64/Decoder/getDecoder))
 
@@ -551,153 +547,72 @@
 (defn parse-body
  "Read entity-body from request, convert from string to clojure data"
  [request]
- (read-string (slurp (:body request))
-  ))
+ (read-string (:body request)))
 
-(defroutes app-routes
- (POST "/login"
-       request
-       (println request)
-       (login-authentication (parse-body request))
+(defn routing
+ "Routing function"
+ [request-start-line
+  request]
+ (when-not (= "POST /check-read-image-progress"
+              request-start-line)
+   (println (str "\n" request))
   )
- (POST "/am-i-logged-in"
-       request
-       (println request)
-       (am-i-logged-in (get-cookie request "session"))
-  )
- (POST "/get-entities"
-       request
-       (println request)
-       (get-entities (parse-body request))
-  )
- (POST "/get-entity"
-       request
-       (println request)
-       (get-entity (parse-body request))
-  )
- (POST "/update-entity"
-       request
-       (println request)
-       (update-entity (parse-body request))
-  )
- (POST "/insert-entity"
-       request
-       (println request)
-       (insert-entity (parse-body request))
-  )
- (DELETE "/delete-entity"
-       request
-       (println request)
-       (delete-entity (parse-body request))
-  )
- (POST "/process-images"
-       request
-       (println request)
-       (process-images (parse-body request))
-  )
- (POST "/read-image"
-       request
-       (println request)
-       (read-image (parse-body request))
-  )
- (POST "/check-read-image-progress"
-       request
-       ;(println request)
-       (check-read-image-progress (parse-body request))
-  )
- (POST "/save-sign"
-       request
-       (println request)
-       (save-sign (parse-body request))
-  )
- (POST "/save-parameters"
-       request
-       (println request)
-       (save-parameters (parse-body request))
-  )
- (POST "/check-progress"
-       request
-       ;(println request)
-       (check-progress (parse-body request))
-  )
- (route/resources "/")
- (route/not-found (not-found))
-; (POST "*"
-;  request
-;  (println request)
-;  (hello-world "hi"))
-  )
-
-(def handler (-> (chandler/site
-                  (wrap-cors
-                   app-routes
-                   :access-control-allow-origin    [#"https://ocr:8451"
-                                                    #"http://ocr:8453"
-                                                    #"https://127.0.0.1:8451"
-                                                    #"http://127.0.0.1:8453"
-                                                    #"http://localhost:3449"
-                                                    #"https://192.168.1.5:8451"]
-                   :access-control-allow-methods   [:get :post :delete]
-                   ;:access-control-allow-credentials  "true"
-                   ))
-               ))
-
-(defonce server (atom nil))
-
-(def db-name "ocr-db")
+ (case request-start-line
+   "POST /login" (login-authentication (parse-body request))
+   "POST /am-i-logged-in" (am-i-logged-in (get-cookie request "session"))
+   "POST /get-entities" (get-entities (parse-body request))
+   "POST /get-entity" (get-entity (parse-body request))
+   "POST /update-entity" (update-entity (parse-body request))
+   "POST /insert-entity" (insert-entity (parse-body request))
+   "DELETE /delete-entity" (delete-entity (parse-body request))
+   "POST /process-images" (process-images (parse-body request))
+   "POST /read-image" (read-image (parse-body request))
+   "POST /check-read-image-progress" (check-read-image-progress (parse-body request))
+   "POST /save-sign" (save-sign (parse-body request))
+   "POST /save-parameters" (save-parameters (parse-body request))
+   "POST /check-progress" (check-progress (parse-body request))
+   {:status 404
+    :headers {(eh/content-type) (mt/text-plain)}
+    :body (str {:status  "success"})}))
 
 (defn start-server
-  "Start server"
-  []
-  (if @server
-      (let []
-       (println "Server instance exists")
-       (try
-        (.start @server)
-        (mon/mongodb-connect db-name)
-        (catch Exception ex
-               (println (.getMessage ex))
-         ))
-       )
-      (let []
-       (println "Server instance does not exist")
-       (try
-        (reset! server (run-jetty handler {:port 1606 :join? false}))
-        (mon/mongodb-connect db-name)
-        (catch Exception ex
-               (println ex))
-        ))
-   ))
+ "Start server"
+ []
+ (try
+   (srvr/start-server
+     routing
+     {(rsh/access-control-allow-origin) #{"https://ocr:8451"
+                                          "http://ocr:8453"
+                                          "https://127.0.0.1:8451"
+                                          "http://127.0.0.1:8453"
+                                          "http://localhost:3449"
+                                          "https://192.168.1.5:8451"}
+      (rsh/access-control-allow-methods) "GET, POST, DELETE, PUT"}
+     1606)
+   (mon/mongodb-connect db-name)
+   (catch Exception e
+     (println (.getMessage e))
+    ))
+ )
 
 (defn stop-server
-  "Stop server"
-  []
-  (if @server
-   (let []
-    (println "Server stopping")
-    (try
-     (.stop @server)
-     (mon/mongodb-disconnect)
-     (println "Server stopped")
-     (catch Exception ex
-            (println ex))
-     ))
-   (println "Server not initialized"))
-  )
-
-(defn atom-server-unset
-  "Unset server from handler"
-  []
-  (reset! server nil))
+ "Stop server"
+ []
+ (try
+   (srvr/stop-server)
+   (mon/mongodb-disconnect)
+   (catch Exception e
+     (println (.getMessage e))
+    ))
+ )
 
 (defn unset-restart-server
-  "Stop server, unset server atom to nil
-   reload project, start new server instance"
-  []
-  (stop-server)
-  (atom-server-unset)
-  (use 'ocr-server.core :reload)
-  (start-server))
+ "Stop server, unset server atom to nil
+  reload project, start new server instance"
+ []
+ (stop-server)
+ (use 'ocr-server.core :reload)
+ (start-server))
 
 (defn -main [& args]
   (start-server))
