@@ -1,5 +1,6 @@
 (ns ocr-server.core
  (:require [server-lib.core :as srvr]
+           [websocket-server-lib.core :as ws-srvr]
            [utils-lib.core :as utils]
            [mongo-lib.core :as mon]
            [ajax-lib.http.entity-header :as eh]
@@ -401,20 +402,25 @@
                      :error-message (.getMessage ex)})}))
   ))
 
-(defn agent-read-image
+(defn read-image-ws
  ""
- [agent-value
-  image-byte-array
-  light-value
-  contrast-value
-  space-value
-  hooks-value
-  matching-value
-  threads-value
-  rows-threads-value
-  document-signs
-  splitted-base64]
- (let [[read-text
+ [websocket]
+ (let [{websocket-message :websocket-message
+        websocket-output-fn :websocket-output-fn} websocket
+       request-body (read-string websocket-message)
+       _id (:_id request-body)
+       light-value (read-string (:light-value request-body))
+       contrast-value (read-string (:contrast-value request-body))
+       space-value (read-string (:space-value request-body))
+       hooks-value (read-string (:hooks-value request-body))
+       matching-value (read-string (:matching-value request-body))
+       threads-value (read-string (:threads-value request-body))
+       rows-threads-value (read-string (:rows-threads-value request-body))
+       document-signs (get-document-signs _id)
+       splitted-base64 (clojure.string/split (:image-src request-body) #"base64,")
+       image-base64 (get splitted-base64 1)
+       image-byte-array (.decode base64-decoder image-base64)
+       [read-text
         unknown-signs-images] (ocr/read-image-fn
                                 image-byte-array
                                 light-value
@@ -437,60 +443,17 @@
          conj
          new-image-base64))
     )
-   {:status  (stc/ok)
-    :headers {(eh/content-type) (mt/text-plain)}
-    :body    (str {:status "success"
-                   :images @unknown-signs-images-atom
-                   :read-text read-text
-                   :job-s-done true})})
- )
-
-(defn read-image
- "Read text from image"
- [request-body]
- (let [_id (:_id request-body)
-       light-value (read-string (:light-value request-body))
-       contrast-value (read-string (:contrast-value request-body))
-       space-value (read-string (:space-value request-body))
-       hooks-value (read-string (:hooks-value request-body))
-       matching-value (read-string (:matching-value request-body))
-       threads-value (read-string (:threads-value request-body))
-       rows-threads-value (read-string (:rows-threads-value request-body))
-       document-signs (get-document-signs _id)
-       splitted-base64 (clojure.string/split (:image-src request-body) #"base64,")
-       image-base64 (get splitted-base64 1)
-       image-byte-array (.decode base64-decoder image-base64)]
-  (def
-    read-image-result-agent
-    (agent nil))
-  (send
-    read-image-result-agent
-    agent-read-image
-     image-byte-array
-     light-value
-     contrast-value
-     space-value
-     hooks-value
-     matching-value
-     threads-value
-     rows-threads-value
-     document-signs
-     splitted-base64)
-  {:status  (stc/ok)
-   :headers {(eh/content-type) (mt/text-plain)}
-   :body    (str {:status "success"})})
- )
-
-(defn check-read-image-progress
- ""
- [request-body]
- (if @read-image-result-agent
-   (let [response @read-image-result-agent]
-     response)
-   {:status  (stc/ok)
-    :headers {(eh/content-type) (mt/text-plain)}
-    :body    (str {:status "success"
-                   :job-s-done false})}))
+   (websocket-output-fn
+     (str
+       {:status "success"
+        :action "read-image"
+        :images @unknown-signs-images-atom
+        :read-text read-text}))
+   (websocket-output-fn
+     (str
+       {:status "close"})
+     -120)
+  ))
 
 (defn save-sign
  "Save sign with document"
@@ -513,29 +476,6 @@
    :headers {(eh/content-type) (mt/text-plain)}
    :body    (str {:status "success"})}))
 
-(defn check-progress
- ""
- [request-body]
- (let [check-request (:check-request request-body)
-       response (atom 0)]
-  (when (= check-request
-           "/clojure/process-images")
-   (reset!
-     response
-     (ocr/process-images-calculate-progress-value-fn))
-   )
-  (when (= check-request
-           "/clojure/read-image")
-   (reset!
-     response
-     (ocr/read-image-calculate-progress-value-fn))
-   )
-  {:status  (stc/ok)
-   :headers {(eh/content-type) (mt/text-plain)}
-   :body    (str {:status "success"
-                  :progress-value (str @response)})}
-  ))
-
 (defn not-found
  "Requested action not found"
  []
@@ -553,9 +493,13 @@
  "Routing function"
  [request-start-line
   request]
- (when-not (= "POST /check-read-image-progress"
-              request-start-line)
-   (println (str "\n" request))
+ (println
+   (str
+     "\n"
+     (dissoc
+       request
+       :body
+       :websocket))
   )
  (case request-start-line
    "POST /login" (login-authentication (parse-body request))
@@ -566,11 +510,9 @@
    "POST /insert-entity" (insert-entity (parse-body request))
    "DELETE /delete-entity" (delete-entity (parse-body request))
    "POST /process-images" (process-images (parse-body request))
-   "POST /read-image" (read-image (parse-body request))
-   "POST /check-read-image-progress" (check-read-image-progress (parse-body request))
+   "ws GET /read-image" (read-image-ws (:websocket request))
    "POST /save-sign" (save-sign (parse-body request))
    "POST /save-parameters" (save-parameters (parse-body request))
-   "POST /check-progress" (check-progress (parse-body request))
    {:status 404
     :headers {(eh/content-type) (mt/text-plain)}
     :body (str {:status  "success"})}))
@@ -589,6 +531,9 @@
                                           "https://192.168.1.5:8451"}
       (rsh/access-control-allow-methods) "GET, POST, DELETE, PUT"}
      1606)
+   (ws-srvr/start-server
+     routing
+     1607)
    (mon/mongodb-connect db-name)
    (catch Exception e
      (println (.getMessage e))
@@ -600,6 +545,7 @@
  []
  (try
    (srvr/stop-server)
+   (ws-srvr/stop-server)
    (mon/mongodb-disconnect)
    (catch Exception e
      (println (.getMessage e))

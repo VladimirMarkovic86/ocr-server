@@ -6,6 +6,7 @@
   :dependencies [[org.clojure/clojure			   "1.9.0"]
          									;	https://clojure.org/api/api
          								[org.vladimir/server-lib "0.1.0"]
+         								[org.vladimir/websocket-server-lib "0.1.0"]
          								[org.vladimir/mongo-lib "0.1.0"]
          								[org.vladimir/utils-lib "0.1.0"]
          								[org.vladimir/ajax-lib "0.1.0"]
