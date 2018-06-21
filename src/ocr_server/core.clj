@@ -299,32 +299,54 @@
        new-image-base64 (str image-mime-type "base64," new-image-base64)]
    new-image-base64))
 
-(defn process-images
+(defn process-images-ws
  "Process image with parameters from front end"
- [request-body]
+ [websocket]
  ;PROGRESS BAR
  (ocr/process-images-reset-progress-value-fn)
- (let [light-value (read-string (:light-value request-body))
+ (let [{websocket-message :websocket-message
+        websocket-output-fn :websocket-output-fn} websocket
+       request-body (read-string websocket-message)
+       light-value (read-string (:light-value request-body))
        contrast-value (read-string (:contrast-value request-body))
        image-srcs (:image-srcs request-body)
        images (atom [])
        new-images-base64 (atom [])]
+  (.start
+    (Thread.
+      (fn []
+        (let [progress-value (atom
+                               (ocr/process-images-calculate-progress-value-fn))]
+          (while (< @progress-value
+                    100)
+            (reset!
+              progress-value
+              (ocr/process-images-calculate-progress-value-fn))
+            (websocket-output-fn
+              (str
+                {:action "update-progress"
+                 :progress-value @progress-value}))
+            (Thread/sleep 500))
+          ;PROGRESS BAR
+          (ocr/process-images-reset-progress-value-fn))
+       ))
+   )
   (doseq [image-src image-srcs]
-   (let [splitted-base64 (clojure.string/split image-src #"base64,")
-         image-base64 (get splitted-base64 1)
-         image (ocr/read-base64-image-fn
-                 image-base64)
-         height (.getHeight image)
-         width (.getWidth image)]
-    ;PROGRESS BAR
-    (ocr/increase-total-pixels
-      width
-      height)
-    (swap!
-      images
-      conj
-      [image
-       (get splitted-base64 0)]))
+    (let [splitted-base64 (clojure.string/split image-src #"base64,")
+          image-base64 (get splitted-base64 1)
+          image (ocr/read-base64-image-fn
+                  image-base64)
+          height (.getHeight image)
+          width (.getWidth image)]
+     ;PROGRESS BAR
+     (ocr/increase-total-pixels
+       width
+       height)
+     (swap!
+       images
+       conj
+       [image
+        (get splitted-base64 0)]))
    )
   (doseq [[image
            image-mime-type] @images]
@@ -337,12 +359,19 @@
        image
        image-mime-type))
    )
-  ;PROGRESS BAR
-  (ocr/process-images-reset-progress-value-fn)
-  {:status  (stc/ok)
-   :headers {(eh/content-type) (mt/text-plain)}
-   :body    (str {:status "success"
-                  :srcs @new-images-base64})}))
+  (websocket-output-fn
+    (str
+      {:action "update-progress"
+       :progress-value 100}))
+  (websocket-output-fn
+     (str
+       {:action "image-processed"
+        :srcs @new-images-base64}))
+  (websocket-output-fn
+    (str
+      {:status "close"})
+    -120))
+ )
 
 (defn get-document-signs
  "Get signs from particular document"
@@ -509,7 +538,7 @@
    "POST /update-entity" (update-entity (parse-body request))
    "POST /insert-entity" (insert-entity (parse-body request))
    "DELETE /delete-entity" (delete-entity (parse-body request))
-   "POST /process-images" (process-images (parse-body request))
+   "ws GET /process-images" (process-images-ws (:websocket request))
    "ws GET /read-image" (read-image-ws (:websocket request))
    "POST /save-sign" (save-sign (parse-body request))
    "POST /save-parameters" (save-parameters (parse-body request))
