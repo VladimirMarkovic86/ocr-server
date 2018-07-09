@@ -11,3 +11,5 @@ cd ~/workspace/clojure/projects/server_lib
 lein install
 cd ~/workspace/clojure/projects/websocket_server_lib
 lein install
+cd ~/workspace/clojure/projects/session_lib
+lein install
