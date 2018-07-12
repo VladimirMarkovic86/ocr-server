@@ -376,26 +376,24 @@
                          (:contrast-value request-body))
         image-srcs (:image-srcs request-body)
         images (atom [])
-        new-images-base64 (atom [])]
-    (.start
-      (Thread.
-        (fn []
-          (let [progress-value (atom
-                                 (ocr/process-images-calculate-progress-value-fn))]
-            (while (< @progress-value
-                      100)
-              (reset!
-                progress-value
-                (ocr/process-images-calculate-progress-value-fn))
-              (websocket-output-fn
-                (str
-                  {:action "update-progress"
-                   :progress-value @progress-value}))
-              (Thread/sleep 500))
-            ;PROGRESS BAR
-            (ocr/process-images-reset-progress-value-fn))
-         ))
-     )
+        new-images-base64 (atom [])
+        update-progress-thread
+          (future
+            (let [progress-value (atom
+                                   (ocr/process-images-calculate-progress-value-fn))]
+              (while (< @progress-value
+                        100)
+                (reset!
+                  progress-value
+                  (ocr/process-images-calculate-progress-value-fn))
+                (websocket-output-fn
+                  (str
+                    {:action "update-progress"
+                     :progress-value @progress-value}))
+                (Thread/sleep 500))
+              ;PROGRESS BAR
+              (ocr/process-images-reset-progress-value-fn))
+           )]
     (doseq [image-src image-srcs]
       (let [splitted-base64 (clojure.string/split
                               image-src
@@ -432,6 +430,8 @@
          image
          image-mime-type))
      )
+    (future-cancel
+      update-progress-thread)
     (websocket-output-fn
       (str
         {:action "update-progress"
