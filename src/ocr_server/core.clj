@@ -5,6 +5,7 @@
             [utils-lib.core :as utils]
             [mongo-lib.core :as mon]
             [dao-lib.core :as dao]
+            [language-lib.core :as lang]
             [ajax-lib.http.entity-header :as eh]
             [ajax-lib.http.response-header :as rsh]
             [ajax-lib.http.mime-type :as mt]
@@ -274,18 +275,6 @@
      :body    (str {:status "success"})})
  )
 
-(defn get-labels
-  ""
-  []
-  (dao/get-entities
-    {:entity-type "language"
-     :entity-filter {}
-     :projection [:code :english :serbian]
-     :projection-include true
-     :qsort {:code 1}
-     :pagination false
-     :collation {:locale "sr"}}))
-
 (defn not-found
   "Requested action not found"
   []
@@ -330,7 +319,10 @@
              "POST /save-sign" (save-sign (parse-body request))
              "POST /save-parameters" (save-parameters (parse-body request))
              "POST /logout" (ssn/logout request)
-             "POST /get-labels" (get-labels)
+             "POST /get-labels" (lang/get-labels request)
+             "POST /set-language" (lang/set-language
+                                    request
+                                    (parse-body request))
              {:status (stc/not-found)
               :headers {(eh/content-type) (mt/text-plain)}
               :body (str {:status  "success"})})]
@@ -347,7 +339,7 @@
                       (:user-agent request))
       "POST /sign-up" (dao/insert-entity (parse-body request))
       "POST /am-i-logged-in" (ssn/am-i-logged-in request)
-      "POST /get-labels" (get-labels)
+      "POST /get-labels" (lang/get-labels request)
       {:status (stc/unauthorized)
        :headers {(eh/content-type) (mt/text-plain)}
        :body (str {:status  "success"})})
