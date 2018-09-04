@@ -2,10 +2,10 @@
   (:require [session-lib.core :as ssn]
             [server-lib.core :as srvr]
             [websocket-server-lib.core :as ws-srvr]
-            [utils-lib.core :as utils]
+            [utils-lib.core :refer [parse-body]]
             [mongo-lib.core :as mon]
-            [dao-lib.core :as dao]
-            [language-lib.core :as lang]
+            [common-server.core :as rt]
+            [ocr-middle.functionalities :as omfns]
             [ajax-lib.http.entity-header :as eh]
             [ajax-lib.http.response-header :as rsh]
             [ajax-lib.http.mime-type :as mt]
@@ -275,75 +275,53 @@
      :body    (str {:status "success"})})
  )
 
-(defn not-found
-  "Requested action not found"
-  []
-  {:status  (stc/not-found)
-   :headers {(eh/content-type) (mt/text-plain)}
-   :body    (str {:status  "error"
-                  :error-message "404 not found"})})
+(defn response-routing-fn
+  ""
+  [request
+   request-start-line]
+  (case request-start-line
+    "ws GET /process-images" (process-images-ws (:websocket request))
+    "ws GET /read-image" (read-image-ws (:websocket request))
+    "POST /save-sign" (save-sign (parse-body request))
+    "POST /save-parameters" (save-parameters (parse-body request))
+    nil))
 
-(defn parse-body
-  "Read entity-body from request, convert from string to clojure data"
-  [request]
-  (read-string
-    (:body request))
+(defn allow-action-routing-fn
+  ""
+  [request
+   request-start-line]
+  (let [allowed-functionalities (rt/get-allowed-actions
+                                  request)]
+    (case request-start-line
+      "ws GET /process-images" (contains?
+                                 allowed-functionalities
+                                 omfns/process-images)
+      "ws GET /read-image" (contains?
+                             allowed-functionalities
+                             omfns/read-image)
+      "POST /save-sign" (contains?
+                          allowed-functionalities
+                          omfns/save-sign)
+      "POST /save-parameters" (contains?
+                                allowed-functionalities
+                                omfns/save-parameters)
+      false))
  )
 
 (defn routing
   "Routing function"
   [request-start-line
    request]
-  (println
-    (str
-      "\n"
-      (dissoc
-        request
-        :body
-        :websocket))
-   )
-  (if (ssn/am-i-logged-in-fn request)
-    (let [[cookie-key
-           cookie-value] (ssn/refresh-session
-                           request)
-          response
-           (case request-start-line
-             "POST /am-i-logged-in" (ssn/am-i-logged-in request)
-             "POST /get-entities" (dao/get-entities (parse-body request))
-             "POST /get-entity" (dao/get-entity (parse-body request))
-             "POST /update-entity" (dao/update-entity (parse-body request))
-             "POST /insert-entity" (dao/insert-entity (parse-body request))
-             "DELETE /delete-entity" (dao/delete-entity (parse-body request))
-             "ws GET /process-images" (process-images-ws (:websocket request))
-             "ws GET /read-image" (read-image-ws (:websocket request))
-             "POST /save-sign" (save-sign (parse-body request))
-             "POST /save-parameters" (save-parameters (parse-body request))
-             "POST /logout" (ssn/logout request)
-             "POST /get-labels" (lang/get-labels request)
-             "POST /set-language" (lang/set-language
-                                    request
-                                    (parse-body request))
-             {:status (stc/not-found)
-              :headers {(eh/content-type) (mt/text-plain)}
-              :body (str {:status  "success"})})]
-      (update-in
-        response
-        [:headers]
-        assoc
-        cookie-key
-        cookie-value))
-    (case request-start-line
-      "POST /login" (ssn/login-authentication
-                      (parse-body
-                        request)
-                      (:user-agent request))
-      "POST /sign-up" (dao/insert-entity (parse-body request))
-      "POST /am-i-logged-in" (ssn/am-i-logged-in request)
-      "POST /get-labels" (lang/get-labels request)
-      {:status (stc/unauthorized)
-       :headers {(eh/content-type) (mt/text-plain)}
-       :body (str {:status  "success"})})
-   ))
+  (rt/routing
+    request-start-line
+    request
+    (response-routing-fn
+      request
+      request-start-line)
+    (allow-action-routing-fn
+      request
+      request-start-line))
+ )
 
 (defn start-server
   "Start server"
