@@ -6,6 +6,7 @@
             [mongo-lib.core :as mon]
             [common-server.core :as rt]
             [ocr-middle.functionalities :as omfns]
+            [ocr-middle.request-urls :as orurls]
             [ajax-lib.http.entity-header :as eh]
             [ajax-lib.http.response-header :as rsh]
             [ajax-lib.http.mime-type :as mt]
@@ -277,50 +278,87 @@
 
 (defn response-routing-fn
   ""
-  [request
-   request-start-line]
-  (case request-start-line
-    "ws GET /process-images" (process-images-ws (:websocket request))
-    "ws GET /read-image" (read-image-ws (:websocket request))
-    "POST /save-sign" (save-sign (parse-body request))
-    "POST /save-parameters" (save-parameters (parse-body request))
-    nil))
+  [request]
+  (let [{request-uri :request-uri
+         request-method :request-method} request]
+    (cond
+      (= request-method
+         "ws GET")
+        (cond
+          (= request-uri
+             orurls/process-images-ws-url)
+            (process-images-ws (:websocket request))
+          (= request-uri
+             orurls/read-image-ws-url)
+            (read-image-ws (:websocket request))
+          :else
+            nil)
+      (= request-method
+         "POST")
+        (cond
+          (= request-uri
+             orurls/save-sign-url)
+            (save-sign (parse-body request))
+          (= request-uri
+             orurls/save-parameters-url)
+            (save-parameters (parse-body request))
+          :else
+            nil)
+      :else
+        nil))
+ )
 
 (defn allow-action-routing-fn
   ""
-  [request
-   request-start-line]
+  [request]
   (let [allowed-functionalities (rt/get-allowed-actions
-                                  request)]
-    (case request-start-line
-      "ws GET /process-images" (contains?
-                                 allowed-functionalities
-                                 omfns/process-images)
-      "ws GET /read-image" (contains?
-                             allowed-functionalities
-                             omfns/read-image)
-      "POST /save-sign" (contains?
-                          allowed-functionalities
-                          omfns/save-sign)
-      "POST /save-parameters" (contains?
-                                allowed-functionalities
-                                omfns/save-parameters)
-      false))
+                                  request)
+        {request-uri :request-uri
+         request-method :request-method} request]
+    (cond
+      (= request-method
+         "ws GET")
+        (cond
+          (= request-uri
+             orurls/process-images-ws-url)
+            (contains?
+              allowed-functionalities
+              omfns/process-images)
+          (= request-uri
+             orurls/read-image-ws-url)
+            (contains?
+              allowed-functionalities
+              omfns/read-image)
+          :else
+            false)
+      (= request-method
+         "POST")
+        (cond
+          (= request-uri
+             orurls/save-sign-url)
+            (contains?
+              allowed-functionalities
+              omfns/save-sign)
+          (= request-uri
+             orurls/save-parameters-url)
+            (contains?
+              allowed-functionalities
+              omfns/save-parameters)
+          :else
+            false)
+      :else
+        false))
  )
 
 (defn routing
   "Routing function"
-  [request-start-line
-   request]
+  [request]
   (rt/routing
-    request-start-line
     request
     (response-routing-fn
-      request
-      request-start-line)
+      request)
     (allow-action-routing-fn
-      request
-      request-start-line))
+      request))
  )
 
 (defn start-server
@@ -330,12 +368,19 @@
     (srvr/start-server
       routing
       {(rsh/access-control-allow-origin) #{"https://ocr:8451"
+                                           "https://ocr:1612"
+                                           "http://ocr:1612"
                                            "http://ocr:8453"}
-       (rsh/access-control-allow-methods) "GET, POST, DELETE, PUT"}
-      1606)
+       (rsh/access-control-allow-methods) "OPTIONS, GET, POST, DELETE, PUT"
+       (rsh/access-control-allow-credentials) true}
+      1602
+      {:keystore-file-path
+        "/home/vladimir/workspace/certificate/jks/ocr_server.jks"
+       :keystore-password
+        "ultras12"})
     (ws-srvr/start-server
       routing
-      1607)
+      1622)
     (mon/mongodb-connect
       db-name)
     (ssn/create-indexes)
