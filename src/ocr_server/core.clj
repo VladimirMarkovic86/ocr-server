@@ -277,7 +277,7 @@
  )
 
 (defn response-routing-fn
-  ""
+  "Custom routing function"
   [request]
   (let [{request-uri :request-uri
          request-method :request-method} request]
@@ -309,7 +309,7 @@
  )
 
 (defn allow-action-routing-fn
-  ""
+  "Check if action is allowed for logged in user"
   [request]
   (let [allowed-functionalities (rt/get-allowed-actions
                                   request)
@@ -380,7 +380,11 @@
         "ultras12"})
     (ws-srvr/start-server
       routing
-      1622)
+      1622
+      {:keystore-file-path
+        "/home/vladimir/workspace/certificate/jks/ocr_ws_server.jks"
+       :keystore-password
+        "ultras12"})
     (mon/mongodb-connect
       db-name)
     (ssn/create-indexes)
