@@ -1,4 +1,4 @@
-# server
+# Optical character recognition server
 
 Optical character recognition server
 
