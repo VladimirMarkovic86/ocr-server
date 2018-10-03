@@ -375,14 +375,14 @@
        (rsh/access-control-allow-credentials) true}
       1602
       {:keystore-file-path
-        "/home/vladimir/workspace/certificate/jks/ocr_server.jks"
+        "certificate/ocr_server.jks"
        :keystore-password
         "ultras12"})
     (ws-srvr/start-server
       routing
       1622
       {:keystore-file-path
-        "/home/vladimir/workspace/certificate/jks/ocr_ws_server.jks"
+        "certificate/ocr_ws_server.jks"
        :keystore-password
         "ultras12"})
     (mon/mongodb-connect
