@@ -1,0 +1,53 @@
+(db/insert-many
+  "language"
+  [{ :code 1, :english "Save", :serbian "Сачувај" }
+{ :code 2, :english "Log out", :serbian "Одјави се" }
+{ :code 3, :english "Home", :serbian "Почетна" }
+{ :code 4, :english "Create", :serbian "Креирај" }
+{ :code 5, :english "Show all", :serbian "Прикажи све" }
+{ :code 6, :english "Details", :serbian "Детаљи" }
+{ :code 7, :english "Edit", :serbian "Измени" }
+{ :code 8, :english "Delete", :serbian "Обриши" }
+{ :code 9, :english "Actions", :serbian "Акције" }
+{ :code 10, :english "Insert", :serbian "Упиши" }
+{ :code 11, :english "Update", :serbian "Ажурирај" }
+{ :code 12, :english "Cancel", :serbian "Откажи" }
+{ :code 13, :english "Search", :serbian "Претрага" }
+{ :code 14, :english "E-mail", :serbian "Е-пошта" }
+{ :code 15, :english "Password", :serbian "Лозинка" }
+{ :code 16, :english "Remember me", :serbian "Упамти ме" }
+{ :code 17, :english "Log in", :serbian "Пријави се" }
+{ :code 18, :english "Sign up", :serbian "Направи налог" }
+{ :code 19, :english "Username", :serbian "Корисничко име" }
+{ :code 20, :english "Confirm password", :serbian "Потврди лозинку" }
+{ :code 21, :english "User", :serbian "Корисник" }
+{ :code 22, :english "Role", :serbian "Улога" }
+{ :code 23, :english "Language", :serbian "Језик" }
+{ :code 24, :english "Label code", :serbian "Код лабеле" }
+{ :code 25, :english "English", :serbian "Енглески" }
+{ :code 26, :english "Serbian", :serbian "Српски" }
+{ :code 1001, :english "Working area", :serbian "Радионица" }
+{ :code 1002, :english "Document", :serbian "Документ" }
+{ :code 1003, :english "Name", :serbian "Назив" }
+{ :code 1004, :english "Document type", :serbian "Тип документа" }
+{ :code 1005, :english "Image", :serbian "Слика" }
+{ :code 1006, :english "Learning", :serbian "Учење" }
+{ :code 1007, :english "Reading", :serbian "Читање" }
+{ :code 1008, :english "- Select -", :serbian "- Изабери -" }
+{ :code 1009, :english "Light", :serbian "Светлост" }
+{ :code 1010, :english "Contrast", :serbian "Контраст" }
+{ :code 1011, :english "Space", :serbian "Размак" }
+{ :code 1012, :english "Hooks", :serbian "Квачице" }
+{ :code 1013, :english "Matching", :serbian "Поклапање" }
+{ :code 1014, :english "Threads", :serbian "Нити" }
+{ :code 1015, :english "Rows threads", :serbian "Нити редова" }
+{ :code 1016, :english "Read", :serbian "Читај" }
+{ :code 1017, :english "Process", :serbian "Процесуирај" }
+{ :code 1018, :english "Save parameters", :serbian "Сачувај параметре" }
+{ :code 1019, :english "Save sign", :serbian "Сачувај знак" }
+{ :code 27, :english "Functionality", :serbian "Функционалност" }
+{ :code 28, :english "Role name", :serbian "Назив улоге" }
+{ :code 29, :english "Functionalities", :serbian "Функционалности" }
+{ :code 30, :english "Roles", :serbian "Улоге" }
+{ :code 31, :english "No entities", :serbian "Нема ентитета" }])
+

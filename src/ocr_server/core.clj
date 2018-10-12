@@ -1,9 +1,10 @@
 (ns ocr-server.core
+  (:gen-class)
   (:require [session-lib.core :as ssn]
             [server-lib.core :as srvr]
             [websocket-server-lib.core :as ws-srvr]
             [utils-lib.core :refer [parse-body]]
-            [mongo-lib.core :as mon]
+            [db-lib.core :as db]
             [common-server.core :as rt]
             [ocr-middle.functionalities :as omfns]
             [ocr-middle.request-urls :as orurls]
@@ -17,9 +18,6 @@
                     ByteArrayOutputStream]
            [java.awt.image BufferedImage]
            [javax.imageio ImageIO]))
-
-(def db-name
-     "ocr-db")
 
 (def base64-decoder
      (Base64/Decoder/getDecoder))
@@ -136,7 +134,7 @@
 (defn get-document-signs
   "Get signs from particular document"
   [_id]
-  (let [signs (:signs (mon/mongodb-find-by-id
+  (let [signs (:signs (db/find-by-id
                         "document"
                         _id))
         decoded-signs (atom {})]
@@ -178,7 +176,7 @@
         threads-value (read-string (:threads-value request-body))
         rows-threads-value (read-string (:rows-threads-value request-body))]
    (try
-     (mon/mongodb-update-by-id
+     (db/update-by-id
        "document"
        _id
        {:light light-value
@@ -260,14 +258,14 @@
     {_id :_id} :entity-filter
     sign-value :sign-value
     sign-image :sign-image}]
-  (let [document (mon/mongodb-find-by-id entity-type _id)
+  (let [document (db/find-by-id entity-type _id)
         signs (:signs document)
         signs (if (nil? signs)
                  [{:value sign-value
                    :image sign-image}]
                  (conj signs {:value sign-value
                               :image sign-image}))]
-    (mon/mongodb-update-by-id
+    (db/update-by-id
       entity-type
       _id
       {:signs signs})
@@ -385,8 +383,8 @@
         "certificate/ocr_ws_server.jks"
        :keystore-password
         "ultras12"})
-    (mon/mongodb-connect
-      db-name)
+    (db/connect
+      "resources/db/")
     (ssn/create-indexes)
     (catch Exception e
       (println (.getMessage e))
@@ -399,7 +397,6 @@
   (try
     (srvr/stop-server)
     (ws-srvr/stop-server)
-    (mon/mongodb-disconnect)
     (catch Exception e
       (println (.getMessage e))
      ))
