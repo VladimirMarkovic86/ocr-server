@@ -2,9 +2,9 @@
   (:gen-class)
   (:require [session-lib.core :as ssn]
             [server-lib.core :as srvr]
-            [websocket-server-lib.core :as ws-srvr]
             [utils-lib.core :refer [parse-body]]
-            [db-lib.core :as db]
+            [mongo-lib.core :as mon]
+            [ocr-server.scripts :as scripts]
             [common-server.core :as rt]
             [ocr-middle.functionalities :as omfns]
             [ocr-middle.request-urls :as orurls]
@@ -18,6 +18,13 @@
                     ByteArrayOutputStream]
            [java.awt.image BufferedImage]
            [javax.imageio ImageIO]))
+
+(def db-uri
+     (or (System/getenv "PROD_MONGODB")
+         "mongodb://admin:passw0rd@127.0.0.1:27017/admin"))
+
+(def db-name
+     "ocr-db")
 
 (def base64-decoder
      (Base64/Decoder/getDecoder))
@@ -134,7 +141,7 @@
 (defn get-document-signs
   "Get signs from particular document"
   [_id]
-  (let [signs (:signs (db/find-by-id
+  (let [signs (:signs (mon/mongodb-find-by-id
                         "document"
                         _id))
         decoded-signs (atom {})]
@@ -176,7 +183,7 @@
         threads-value (read-string (:threads-value request-body))
         rows-threads-value (read-string (:rows-threads-value request-body))]
    (try
-     (db/update-by-id
+     (mon/mongodb-update-by-id
        "document"
        _id
        {:light light-value
@@ -258,14 +265,14 @@
     {_id :_id} :entity-filter
     sign-value :sign-value
     sign-image :sign-image}]
-  (let [document (db/find-by-id entity-type _id)
+  (let [document (mon/mongodb-find-by-id entity-type _id)
         signs (:signs document)
         signs (if (nil? signs)
                  [{:value sign-value
                    :image sign-image}]
                  (conj signs {:value sign-value
                               :image sign-image}))]
-    (db/update-by-id
+    (mon/mongodb-update-by-id
       entity-type
       _id
       {:signs signs})
@@ -371,20 +378,17 @@
                                            "http://ocr:8453"}
        (rsh/access-control-allow-methods) "OPTIONS, GET, POST, DELETE, PUT"
        (rsh/access-control-allow-credentials) true}
-      1602
+      (or (read-string
+            (System/getenv "PORT"))
+          1602)
       {:keystore-file-path
         "certificate/ocr_server.jks"
        :keystore-password
         "ultras12"})
-    (ws-srvr/start-server
-      routing
-      1622
-      {:keystore-file-path
-        "certificate/ocr_ws_server.jks"
-       :keystore-password
-        "ultras12"})
-    (db/connect
-      "resources/db/")
+    (mon/mongodb-connect
+      db-uri
+      db-name)
+    (scripts/initialize-db-if-needed)
     (ssn/create-indexes)
     (catch Exception e
       (println (.getMessage e))
@@ -396,7 +400,7 @@
   []
   (try
     (srvr/stop-server)
-    (ws-srvr/stop-server)
+    (mon/mongodb-disconnect)
     (catch Exception e
       (println (.getMessage e))
      ))
