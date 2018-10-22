@@ -370,21 +370,24 @@
   "Start server"
   []
   (try
-    (srvr/start-server
-      routing
-      {(rsh/access-control-allow-origin) #{"https://ocr:8451"
-                                           "https://ocr:1612"
-                                           "http://ocr:1612"
-                                           "http://ocr:8453"}
-       (rsh/access-control-allow-methods) "OPTIONS, GET, POST, DELETE, PUT"
-       (rsh/access-control-allow-credentials) true}
-      (or (read-string
-            (System/getenv "PORT"))
-          1602)
-      {:keystore-file-path
-        "certificate/ocr_server.jks"
-       :keystore-password
-        "ultras12"})
+    (let [port (System/getenv "PORT")
+          port (if port
+                 (read-string
+                   port)
+                 1602)]
+      (srvr/start-server
+        routing
+        {(rsh/access-control-allow-origin) #{"https://ocr:8451"
+                                             "https://ocr:1612"
+                                             "http://ocr:1612"
+                                             "http://ocr:8453"}
+         (rsh/access-control-allow-methods) "OPTIONS, GET, POST, DELETE, PUT"
+         (rsh/access-control-allow-credentials) true}
+        port
+        {:keystore-file-path
+          "certificate/ocr_server.jks"
+         :keystore-password
+          "ultras12"}))
     (mon/mongodb-connect
       db-uri
       db-name)
