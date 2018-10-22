@@ -16,7 +16,6 @@
 
   :min-lein-version "2.0.0"
   
-  ; AOT - Compailation ahead of time
   :main ^:skip-aot ocr-server.core
   
   :uberjar-name "ocr-server-standalone.jar"
