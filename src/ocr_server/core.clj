@@ -20,7 +20,8 @@
            [javax.imageio ImageIO]))
 
 (def db-uri
-     (or (System/getenv "PROD_MONGODB")
+     (or (System/getenv "MONGODB_URI")
+         (System/getenv "PROD_MONGODB")
          "mongodb://admin:passw0rd@127.0.0.1:27017/admin"))
 
 (def db-name
@@ -374,20 +375,39 @@
           port (if port
                  (read-string
                    port)
-                 1602)]
+                 1602)
+          access-control-allow-origin #{"https://ocr:8451"
+                                        "https://ocr:1612"
+                                        "http://ocr:1612"
+                                        "https://ocr:1602"
+                                        "http://ocr:1602"
+                                        "http://ocr:8453"}
+          access-control-allow-origin (if (System/getenv "CLIENT_ORIGIN")
+                                        (conj
+                                          access-control-allow-origin
+                                          (System/getenv "CLIENT_ORIGIN"))
+                                        access-control-allow-origin)
+          access-control-map {(rsh/access-control-allow-origin) access-control-allow-origin
+                              (rsh/access-control-allow-methods) "OPTIONS, GET, POST, DELETE, PUT"
+                              (rsh/access-control-allow-credentials) true}
+          certificates {:keystore-file-path
+                         "certificate/ocr_server.jks"
+                        :keystore-password
+                         "ultras12"}
+          certificates (when-not (System/getenv "CERTIFICATES")
+                         certificates)
+          thread-pool-size (System/getenv "THREAD_POOL_SIZE")]
+      (when thread-pool-size
+        (reset!
+          srvr/thread-pool-size
+          (read-string
+            thread-pool-size))
+       )
       (srvr/start-server
         routing
-        {(rsh/access-control-allow-origin) #{"https://ocr:8451"
-                                             "https://ocr:1612"
-                                             "http://ocr:1612"
-                                             "http://ocr:8453"}
-         (rsh/access-control-allow-methods) "OPTIONS, GET, POST, DELETE, PUT"
-         (rsh/access-control-allow-credentials) true}
+        access-control-map
         port
-        {:keystore-file-path
-          "certificate/ocr_server.jks"
-         :keystore-password
-          "ultras12"}))
+        certificates))
     (mon/mongodb-connect
       db-uri
       db-name)
