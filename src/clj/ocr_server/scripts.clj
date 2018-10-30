@@ -52,6 +52,7 @@
      { :code 1017, :english "Process", :serbian "Процесуирај" }
      { :code 1018, :english "Save parameters", :serbian "Сачувај параметре" }
      { :code 1019, :english "Save sign", :serbian "Сачувај знак" }
+     { :code 1020, :english "Unknown signs list", :serbian "Листа непознатих знакова" }
      { :code 27, :english "Functionality", :serbian "Функционалност" }
      { :code 28, :english "Role name", :serbian "Назив улоге" }
      { :code 29, :english "Functionalities", :serbian "Функционалности" }

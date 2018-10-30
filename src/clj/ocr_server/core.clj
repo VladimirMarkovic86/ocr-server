@@ -176,13 +176,30 @@
   "Save parameters for reading calibration"
   [request-body]
   (let [_id (:_id request-body)
-        light-value (read-string (:light-value request-body))
-        contrast-value (read-string (:contrast-value request-body))
-        space-value (read-string (:space-value request-body))
-        hooks-value (read-string (:hooks-value request-body))
-        matching-value (read-string (:matching-value request-body))
-        threads-value (read-string (:threads-value request-body))
-        rows-threads-value (read-string (:rows-threads-value request-body))]
+        light-value (read-string
+                      (:light-value
+                        request-body))
+        contrast-value (read-string
+                         (:contrast-value
+                           request-body))
+        space-value (read-string
+                      (:space-value
+                        request-body))
+        hooks-value (read-string
+                      (:hooks-value
+                        request-body))
+        matching-value (read-string
+                         (:matching-value
+                           request-body))
+        threads-value (read-string
+                        (:threads-value
+                          request-body))
+        rows-threads-value (read-string
+                             (:rows-threads-value
+                               request-body))
+        unknown-sign-count-limit-value (read-string
+                                         (:unknown-sign-count-limit-value
+                                           request-body))]
    (try
      (mon/mongodb-update-by-id
        "document"
@@ -193,7 +210,8 @@
         :hooks hooks-value
         :matching matching-value
         :threads threads-value
-        :rows-threads rows-threads-value})
+        :rows-threads rows-threads-value
+        :unknown-sign-count-limit unknown-sign-count-limit-value})
      {:status  (stc/ok)
       :headers {(eh/content-type) (mt/text-plain)}
       :body    (str {:status "success"})}
@@ -212,15 +230,45 @@
   [websocket]
   (let [{websocket-message :websocket-message
          websocket-output-fn :websocket-output-fn} websocket
-        request-body (read-string websocket-message)
+        request-body (read-string
+                       websocket-message)
         _id (:_id request-body)
-        light-value (read-string (:light-value request-body))
-        contrast-value (read-string (:contrast-value request-body))
-        space-value (read-string (:space-value request-body))
-        hooks-value (read-string (:hooks-value request-body))
-        matching-value (read-string (:matching-value request-body))
-        threads-value (read-string (:threads-value request-body))
-        rows-threads-value (read-string (:rows-threads-value request-body))
+        light-value (read-string
+                      (:light-value
+                        request-body))
+        contrast-value (read-string
+                         (:contrast-value
+                           request-body))
+        space-value (read-string
+                      (:space-value
+                        request-body))
+        hooks-value (read-string
+                      (:hooks-value
+                        request-body))
+        matching-value (read-string
+                         (:matching-value
+                           request-body))
+        threads-value (read-string
+                        (:threads-value
+                          request-body))
+        rows-threads-value (read-string
+                             (:rows-threads-value
+                               request-body))
+        unknown-sign-count-limit-value (read-string
+                                         (:unknown-sign-count-limit-value
+                                           request-body))
+        unknown-sign-count-limit-per-thread (when (and (number?
+                                                         unknown-sign-count-limit-value)
+                                                       (number?
+                                                         rows-threads-value)
+                                                       (< 0
+                                                          unknown-sign-count-limit-value)
+                                                       (< 0
+                                                          rows-threads-value))
+                                              (int
+                                                (/ unknown-sign-count-limit-value
+                                                   rows-threads-value))
+                                             )
         document-signs (get-document-signs _id)
         splitted-base64 (clojure.string/split (:image-src request-body) #"base64,")
         image-base64 (get splitted-base64 1)
@@ -235,7 +283,8 @@
                                  matching-value
                                  threads-value
                                  rows-threads-value
-                                 document-signs)
+                                 document-signs
+                                 unknown-sign-count-limit-per-thread)
         unknown-signs-images-atom (atom [])]
     (doseq [sign-image unknown-signs-images]
       (let [image-os (ByteArrayOutputStream.)
