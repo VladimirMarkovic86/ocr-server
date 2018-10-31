@@ -36,6 +36,8 @@ By default project listens on port 1602, so you can make requests on https://ocr
 
 **For purpose of making requests ocr-client was made and you should start up ocr-client also.**
 
+**MongoDB server should also be up and running and its URI link should be set in PROD_MONGODB environment variable**
+
 ## Authors
 
 * **Vladimir Markovic** - [VladimirMarkovic86](https://github.com/VladimirMarkovic86)
