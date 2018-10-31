@@ -53,6 +53,7 @@
      { :code 1018, :english "Save parameters", :serbian "Сачувај параметре" }
      { :code 1019, :english "Save sign", :serbian "Сачувај знак" }
      { :code 1020, :english "Unknown signs list", :serbian "Листа непознатих знакова" }
+     { :code 1021, :english "Test document entity", :serbian "Тестирај ентитет документ" }
      { :code 27, :english "Functionality", :serbian "Функционалност" }
      { :code 28, :english "Role name", :serbian "Назив улоге" }
      { :code 29, :english "Functionalities", :serbian "Функционалности" }
@@ -69,7 +70,8 @@
      { :role-name "Document administrator", :functionalities [ "document-create", "document-read", "document-update", "document-delete" ] }
      { :role-name "Document moderator", :functionalities [ "document-read", "document-update" ] }
      { :role-name "Working area user", :functionalities [ "process-images", "read-image", "save-sign", "save-parameters" ] }
-     { :role-name "Role moderator 2", :functionalities [ "role-read" ] }])
+     { :role-name "Role moderator 2", :functionalities [ "role-read" ] }
+     {:role-name "Test privileges", :functionalities [ "test-document-entity" ]}])
   (let [user-admin-id (:_id
                         (mon/mongodb-find-one
                           "role"
@@ -90,6 +92,10 @@
                                (mon/mongodb-find-one
                                  "role"
                                  {:role-name "Working area user"}))
+        test-admin-id (:_id
+                        (mon/mongodb-find-one
+                          "role"
+                          {:role-name "Test privileges"}))
         encrypted-password (utils/encrypt-password
                              (or (System/getenv "ADMIN_USER_PASSWORD")
                                  "123"))]
@@ -98,7 +104,12 @@
       {:username "admin"
        :email "123@123"
        :password encrypted-password
-       :roles [user-admin-id language-admin-id role-admin-id document-admin-id working-area-user-id]}))
+       :roles [user-admin-id
+               language-admin-id
+               role-admin-id
+               document-admin-id
+               working-area-user-id
+               test-admin-id]}))
   (let [user-id (:_id
                   (mon/mongodb-find-one
                     "user"
