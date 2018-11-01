@@ -12,7 +12,8 @@
             [ajax-lib.http.response-header :as rsh]
             [ajax-lib.http.mime-type :as mt]
             [ajax-lib.http.status-code :as stc]
-            [ocr-lib.core :as ocr])
+            [ocr-lib.core :as ocr]
+            [audit-lib.core :refer [audit]])
   (:import [java.util Base64]
            [java.io ByteArrayInputStream
                     ByteArrayOutputStream]
