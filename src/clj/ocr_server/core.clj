@@ -408,13 +408,16 @@
 (defn routing
   "Routing function"
   [request]
-  (rt/routing
-    request
-    (response-routing-fn
-      request)
-    (allow-action-routing-fn
-      request))
- )
+  (let [response (rt/routing
+                   request
+                   (response-routing-fn
+                     request)
+                   (allow-action-routing-fn
+                     request))]
+    (audit
+      request
+      response)
+    response))
 
 (defn start-server
   "Start server"
