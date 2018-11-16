@@ -411,8 +411,7 @@
   [request]
   (let [response (rt/routing
                    request
-                   (response-routing-fn
-                     request)
+                   response-routing-fn
                    (allow-action-routing-fn
                      request))]
     (audit
