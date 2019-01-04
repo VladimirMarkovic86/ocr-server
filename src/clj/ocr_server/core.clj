@@ -164,11 +164,14 @@
                         (.decode
                           base64-decoder
                           image-base64))
-                      [(.decode base64-decoder image-base64)])]
+                      [(.decode
+                         base64-decoder
+                         image-base64)])]
        (swap!
         decoded-signs
         assoc
-        (keyword sign-value)
+        (keyword
+          sign-value)
         map-elem))
     )
    @decoded-signs))
@@ -256,8 +259,9 @@
                              (:rows-threads-value
                                request-body))
         unknown-sign-count-limit-value (read-string
-                                         (:unknown-sign-count-limit-value
-                                           request-body))
+                                         (or (:unknown-sign-count-limit-value
+                                               request-body)
+                                             "0"))
         unknown-sign-count-limit-per-thread (when (and (number?
                                                          unknown-sign-count-limit-value)
                                                        (number?
@@ -270,10 +274,17 @@
                                                 (/ unknown-sign-count-limit-value
                                                    rows-threads-value))
                                              )
-        document-signs (get-document-signs _id)
-        splitted-base64 (clojure.string/split (:image-src request-body) #"base64,")
-        image-base64 (get splitted-base64 1)
-        image-byte-array (.decode base64-decoder image-base64)
+        document-signs (get-document-signs
+                         _id)
+        splitted-base64 (clojure.string/split
+                          (:image-src request-body)
+                          #"base64,")
+        image-base64 (get
+                       splitted-base64
+                       1)
+        image-byte-array (.decode
+                           base64-decoder
+                           image-base64)
         [read-text
          unknown-signs-images] (ocr/read-image-fn
                                  image-byte-array
@@ -289,10 +300,21 @@
         unknown-signs-images-atom (atom [])]
     (doseq [sign-image unknown-signs-images]
       (let [image-os (ByteArrayOutputStream.)
-            debug (ImageIO/write sign-image "jpg" image-os)
-            new-image-byte-array (.toByteArray image-os)
-            new-image-base64 (.encodeToString base64-encoder new-image-byte-array)
-            new-image-base64 (str (get splitted-base64 0) "base64," new-image-base64)]
+            debug (ImageIO/write
+                    sign-image
+                    "jpg"
+                    image-os)
+            new-image-byte-array (.toByteArray
+                                   image-os)
+            new-image-base64 (.encodeToString
+                               base64-encoder
+                               new-image-byte-array)
+            new-image-base64 (str
+                               (get
+                                 splitted-base64
+                                 0)
+                               "base64,"
+                               new-image-base64)]
         (swap!
           unknown-signs-images-atom
           conj
@@ -316,20 +338,26 @@
     {_id :_id} :entity-filter
     sign-value :sign-value
     sign-image :sign-image}]
-  (let [document (mon/mongodb-find-by-id entity-type _id)
+  (let [document (mon/mongodb-find-by-id
+                   entity-type
+                   _id)
         signs (:signs document)
-        signs (if (nil? signs)
+        signs (if (nil?
+                    signs)
                  [{:value sign-value
                    :image sign-image}]
-                 (conj signs {:value sign-value
-                              :image sign-image}))]
+                 (conj
+                   signs
+                   {:value sign-value
+                    :image sign-image}))]
     (mon/mongodb-update-by-id
       entity-type
       _id
       {:signs signs})
-    {:status  (stc/ok)
+    {:status (stc/ok)
      :headers {(eh/content-type) (mt/text-plain)}
-     :body    (str {:status "success"})})
+     :body (str
+             {:status "success"})})
  )
 
 (defn response-routing-fn
@@ -343,10 +371,12 @@
         (cond
           (= request-uri
              orurls/process-images-ws-url)
-            (process-images-ws (:websocket request))
+            (process-images-ws
+              (:websocket request))
           (= request-uri
              orurls/read-image-ws-url)
-            (read-image-ws (:websocket request))
+            (read-image-ws
+              (:websocket request))
           :else
             nil)
       (= request-method
@@ -354,10 +384,14 @@
         (cond
           (= request-uri
              orurls/save-sign-url)
-            (save-sign (parse-body request))
+            (save-sign
+              (parse-body
+                request))
           (= request-uri
              orurls/save-parameters-url)
-            (save-parameters (parse-body request))
+            (save-parameters
+              (parse-body
+                request))
           :else
             nil)
       :else
@@ -432,6 +466,10 @@
                                         "http://ocr:1612"
                                         "https://ocr:1602"
                                         "http://ocr:1602"
+                                        "https://192.168.1.86:1612"
+                                        "http://192.168.1.86:1612"
+                                        "https://192.168.1.86:1602"
+                                        "http://192.168.1.86:1602"
                                         "http://ocr:8453"}
           access-control-allow-origin (if (System/getenv "CLIENT_ORIGIN")
                                         (conj

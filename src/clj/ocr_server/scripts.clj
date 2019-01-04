@@ -50,6 +50,11 @@
      { :code 24, :english "Label code", :serbian "Код лабеле" }
      { :code 25, :english "English", :serbian "Енглески" }
      { :code 26, :english "Serbian", :serbian "Српски" }
+     { :code 27, :english "Functionality", :serbian "Функционалност" }
+     { :code 28, :english "Role name", :serbian "Назив улоге" }
+     { :code 29, :english "Functionalities", :serbian "Функционалности" }
+     { :code 30, :english "Roles", :serbian "Улоге" }
+     { :code 31, :english "No entities", :serbian "Нема ентитета" }
      { :code 1001, :english "Working area", :serbian "Радионица" }
      { :code 1002, :english "Document", :serbian "Документ" }
      { :code 1003, :english "Name", :serbian "Назив" }
@@ -69,12 +74,7 @@
      { :code 1017, :english "Process", :serbian "Процесуирај" }
      { :code 1018, :english "Save parameters", :serbian "Сачувај параметре" }
      { :code 1019, :english "Save sign", :serbian "Сачувај знак" }
-     { :code 1020, :english "Unknown signs list", :serbian "Листа непознатих знакова" }
-     { :code 27, :english "Functionality", :serbian "Функционалност" }
-     { :code 28, :english "Role name", :serbian "Назив улоге" }
-     { :code 29, :english "Functionalities", :serbian "Функционалности" }
-     { :code 30, :english "Roles", :serbian "Улоге" }
-     { :code 31, :english "No entities", :serbian "Нема ентитета" }])
+     { :code 1020, :english "Unknown signs list", :serbian "Листа непознатих знакова" }])
   (mon/mongodb-insert-many
     role-cname
     [{:role-name user-admin-rname
@@ -195,6 +195,88 @@
      :date (java.util.Date.)})
  )
 
+(defn db-update-3
+  "Database update 3"
+  []
+  (mon/mongodb-insert-many
+    language-cname
+    [{:code 32, :english "Administration", :serbian "Администрација" }
+     {:code 33, :english "- Select -", :serbian "- Одабери -" }
+     {:code 34, :english "first", :serbian "прва" }
+     {:code 35, :english "previous", :serbian "претходна" }
+     {:code 36, :english "next", :serbian "следећа" }
+     {:code 37, :english "last", :serbian "задња" }
+     {:code 38, :english "Bad input", :serbian "Погрешан унос" }
+     {:code 39, :english "Custom error", :serbian "Грешка" }
+     {:code 40, :english "Pattern mismatch", :serbian "Не поклапање шаблона" }
+     {:code 41, :english "Range overflow", :serbian "Прекорачење опсега" }
+     {:code 42, :english "Range underflow", :serbian "Не достигнут опсег" }
+     {:code 43, :english "Step mismatch", :serbian "Не поклапање корака" }
+     {:code 44, :english "Too long", :serbian "Предуго" }
+     {:code 45, :english "Too short", :serbian "Прекратко" }
+     {:code 46, :english "Type mismatch", :serbian "Не поклапање типа" }
+     {:code 47, :english "Value missing", :serbian "Недостатак вредности" }
+     {:code 48,
+      :english "Please fill out this field.",
+      :serbian "Молим попуните ово поље." }
+     {:code 49,
+      :english "Please enter a number.",
+      :serbian "Молим унесите број." }
+     {:code 50,
+      :english "Please select one of these options.",
+      :serbian "Молим одаберите једну од ових опција." }
+     {:code 51,
+      :english "Please select an item in the list.",
+      :serbian "Молим одаберите ставку у листи." }
+     {:code 52,
+      :english "Please enter an email address.",
+      :serbian "Молим унесите адресу е-поште." }
+     {:code 53,
+      :english "Please use at least $0 characters (you are currently using $1 characters).",
+      :serbian "Молим искористите бар $0 карактера (тренутно користите $1 карактера)." }
+     {:code 54,
+      :english "Please select a valid value. The two nearest valid values are $0 and $1.",
+      :serbian "Молим одаберите исправну вредност. Две најближе исправне вредности су $0 и $1." }
+     {:code 55,
+      :english "Please select a value that is no less than $0.",
+      :serbian "Молим одаберите вредност која није мања од $0." }
+     {:code 56,
+      :english "Please select a value that is no more than $0.",
+      :serbian "Молим одаберите вредност која није већа од $0." }
+     {:code 57,
+      :english "Please match the requested format.",
+      :serbian "Молим држите се захтеваног формата." }
+     {:code 58,
+      :english "Given email doesn't exist.",
+      :serbian "Прослеђена адреса е-поште не постоји." }
+     {:code 59,
+      :english "Incorrect password for given email.",
+      :serbian "Нетачна лозинка за прослеђену адресу е-поште." }
+     {:code 60,
+      :english "Confirm password does not match with password.",
+      :serbian "Потврдна лозинка се не поклапа са лозинком." }
+     {:code 61,
+      :english "Username and/or email already exists.",
+      :serbian "Корисничко име и/или адреса е-поште већ постоји." }
+     {:code 62,
+      :english "Sample App",
+      :serbian "Sample App" }
+     {:code 63,
+      :english "Sample App is prototype project which can be used to quickly get head start in building your Web Apps.",
+      :serbian "Sample App је прототип пројекат који може да се искористи за брзи почетак у изградњи ваше веб апликације." }
+     {:code 64,
+      :english "Password must contain at least one uppercase letter, one lowercase letter, one number and one special character @$!%*?&..",
+      :serbian "Лозинка мора да садржи барем једно велико слово, једно мало слово, један број и један специјални карактер @$!%*?&.." }
+     {:code 65,
+      :english "Please select a file.",
+      :serbian "Молим одаберите фајл." }
+     ])
+  (mon/mongodb-insert-one
+    db-updates-cname
+    {:update 3
+     :date (java.util.Date.)})
+ )
+
 (defn initialize-db-if-needed
   "Check if database exists and initialize it if it doesn't"
   []
@@ -211,6 +293,10 @@
                 db-updates-cname
                 {:update 2})
       (db-update-2))
+    (when-not (mon/mongodb-exists
+                db-updates-cname
+                {:update 3})
+      (db-update-3))
     (catch Exception e
       (println e))
    ))
