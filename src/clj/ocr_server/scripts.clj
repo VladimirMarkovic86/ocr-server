@@ -12,7 +12,8 @@
                                               language-mod-rname
                                               role-admin-rname
                                               role-mod-rname
-                                              test-privileges-rname]]
+                                              test-privileges-rname
+                                              chat-rname]]
             [ocr-middle.role-names :refer [document-admin-rname
                                            document-mod-rname
                                            working-area-user-rname]]
@@ -277,6 +278,27 @@
      :date (java.util.Date.)})
  )
 
+(defn db-update-4
+  "Database update 4"
+  []
+  (mon/mongodb-insert-many
+    language-cname
+    [{:code 66, :english "Type your message here", :serbian "Упишите вашу поруку овде" }
+     {:code 67, :english "Send", :serbian "Пошаљи" }
+     {:code 68, :english "Chat", :serbian "Ћаскање" }
+		   {:code 69, :english "Refresh", :serbian "Освежи" }
+     ])
+		(mon/mongodb-insert-many
+    role-cname
+    [{:role-name chat-rname
+      :functionalities [fns/chat]}
+     ])
+  (mon/mongodb-insert-one
+    db-updates-cname
+    {:update 4
+     :date (java.util.Date.)})
+ )
+
 (defn initialize-db-if-needed
   "Check if database exists and initialize it if it doesn't"
   []
@@ -297,6 +319,10 @@
                 db-updates-cname
                 {:update 3})
       (db-update-3))
+    (when-not (mon/mongodb-exists
+                db-updates-cname
+                {:update 4})
+      (db-update-4))
     (catch Exception e
       (println e))
    ))
