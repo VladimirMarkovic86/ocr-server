@@ -30,5 +30,8 @@
      { :code 1021 :english "Test document entity" :serbian "Тестирај ентитет документ" }
      { :code 1022 :english "Book page" :serbian "Страница књиге"}
      { :code 1023 :english "Typewriter" :serbian "Куцаћа машина"}
+     { :code 1024 :english "Source" :serbian "Извор"}
+     { :code 1025 :english "Known source" :serbian "Познати извор"}
+     { :code 1026 :english "Unknown source" :serbian "Непознати извор"}
      ]))
 
