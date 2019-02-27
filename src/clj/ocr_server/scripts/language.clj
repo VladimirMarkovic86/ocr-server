@@ -5,6 +5,18 @@
 (defn insert-labels
   "Inserts labels"
   []
+  (mon/mongodb-update-one
+    language-cname
+    {:code 62}
+    {:$set
+      {:english "Optical character recognition app"
+       :serbian "Оптичко препознавање карактера"}})
+  (mon/mongodb-update-one
+    language-cname
+    {:code 63}
+    {:$set
+      {:english "Optical character recognition app is based on sample app, and it implements optical character recognition algorithm."
+       :serbian "Оптичко препознавање карактера је апликација заснована на sample app пројекту, и имплементира алгоритам за препознавање знакова са слике."}})
   (mon/mongodb-insert-many
     language-cname
     [{ :code 1001 :english "Working area" :serbian "Радионица" }
