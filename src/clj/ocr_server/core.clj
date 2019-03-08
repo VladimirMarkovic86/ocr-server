@@ -4,6 +4,7 @@
             [server-lib.core :as srvr]
             [utils-lib.core :refer [parse-body]]
             [mongo-lib.core :as mon]
+            [ocr-server.config :as config]
             [ocr-server.scripts :as scripts]
             [common-server.core :as rt]
             [ocr-middle.functionalities :as omfns]
@@ -12,6 +13,7 @@
             [ajax-lib.http.response-header :as rsh]
             [ajax-lib.http.mime-type :as mt]
             [ajax-lib.http.status-code :as stc]
+            [ajax-lib.http.request-method :as rm]
             [ocr-lib.core :as ocr]
             [audit-lib.core :refer [audit]])
   (:import [java.util Base64]
@@ -19,14 +21,6 @@
                     ByteArrayOutputStream]
            [java.awt.image BufferedImage]
            [javax.imageio ImageIO]))
-
-(def db-uri
-     (or (System/getenv "MONGODB_URI")
-         (System/getenv "PROD_MONGODB")
-         "mongodb://admin:passw0rd@127.0.0.1:27017/admin"))
-
-(def db-name
-     "ocr-db")
 
 (def base64-decoder
      (Base64/Decoder/getDecoder))
@@ -57,10 +51,11 @@
 
 (defn process-images-ws
   "Process image with parameters from front end"
-  [websocket]
+  [request]
   ;PROGRESS BAR
   (ocr/process-images-reset-progress-value-fn)
-  (let [{websocket-message :websocket-message
+  (let [websocket (:websocket request)
+        {websocket-message :websocket-message
          websocket-output-fn :websocket-output-fn} websocket
         request-body (read-string
                        websocket-message)
@@ -178,8 +173,10 @@
 
 (defn save-parameters
   "Save parameters for reading calibration"
-  [request-body]
-  (let [_id (:_id request-body)
+  [request]
+  (let [request-body (parse-body
+                       request)
+        _id (:_id request-body)
         light-value (read-string
                       (:light-value
                         request-body))
@@ -231,8 +228,9 @@
 (defn read-image-ws
   "Read image sent through websocket
    and return results back to client"
-  [websocket]
-  (let [{websocket-message :websocket-message
+  [request]
+  (let [websocket (:websocket request)
+        {websocket-message :websocket-message
          websocket-output-fn :websocket-output-fn} websocket
         request-body (read-string
                        websocket-message)
@@ -334,11 +332,14 @@
 
 (defn save-sign
   "Save sign with document"
-  [{entity-type :entity-type
-    {_id :_id} :entity-filter
-    sign-value :sign-value
-    sign-image :sign-image}]
-  (let [document (mon/mongodb-find-by-id
+  [request]
+  (let [request-body (parse-body
+                       request)
+        {entity-type :entity-type
+         {_id :_id} :entity-filter
+         sign-value :sign-value
+         sign-image :sign-image} request-body
+        document (mon/mongodb-find-by-id
                    entity-type
                    _id)
         signs (:signs document)
@@ -360,93 +361,37 @@
              {:status "success"})})
  )
 
-(defn response-routing-fn
-  "Custom routing function"
-  [request]
-  (let [{request-uri :request-uri
-         request-method :request-method} request]
-    (cond
-      (= request-method
-         "ws GET")
-        (cond
-          (= request-uri
-             orurls/process-images-ws-url)
-            (process-images-ws
-              (:websocket request))
-          (= request-uri
-             orurls/read-image-ws-url)
-            (read-image-ws
-              (:websocket request))
-          :else
-            nil)
-      (= request-method
-         "POST")
-        (cond
-          (= request-uri
-             orurls/save-sign-url)
-            (save-sign
-              (parse-body
-                request))
-          (= request-uri
-             orurls/save-parameters-url)
-            (save-parameters
-              (parse-body
-                request))
-          :else
-            nil)
-      :else
-        nil))
- )
+(def logged-in-routing-set
+  (atom
+    #{{:method rm/ws-GET
+       :uri orurls/process-images-ws-url
+       :authorization omfns/process-images
+       :action process-images-ws}
+      {:method rm/ws-GET
+       :uri orurls/read-image-ws-url
+       :authorization omfns/read-image
+       :action read-image-ws}
+      {:method rm/POST
+       :uri orurls/save-sign-url
+       :authorization omfns/save-sign
+       :action save-sign}
+      {:method rm/POST
+       :uri orurls/save-parameters-url
+       :authorization omfns/save-parameters
+       :action save-parameters}}))
 
-(defn allow-action-routing-fn
-  "Check if action is allowed for logged in user"
-  [request]
-  (let [allowed-functionalities (rt/get-allowed-actions
-                                  request)
-        {request-uri :request-uri
-         request-method :request-method} request]
-    (cond
-      (= request-method
-         "ws GET")
-        (cond
-          (= request-uri
-             orurls/process-images-ws-url)
-            (contains?
-              allowed-functionalities
-              omfns/process-images)
-          (= request-uri
-             orurls/read-image-ws-url)
-            (contains?
-              allowed-functionalities
-              omfns/read-image)
-          :else
-            false)
-      (= request-method
-         "POST")
-        (cond
-          (= request-uri
-             orurls/save-sign-url)
-            (contains?
-              allowed-functionalities
-              omfns/save-sign)
-          (= request-uri
-             orurls/save-parameters-url)
-            (contains?
-              allowed-functionalities
-              omfns/save-parameters)
-          :else
-            false)
-      :else
-        false))
- )
+(def logged-out-routing-set
+  (atom
+    #{}))
 
 (defn routing
   "Routing function"
   [request]
+  (rt/add-new-routes
+    @logged-in-routing-set
+    @logged-out-routing-set)
   (let [response (rt/routing
-                   request
-                   response-routing-fn
-                   allow-action-routing-fn)]
+                   request)]
     (audit
       request
       response)
@@ -456,55 +401,18 @@
   "Start server"
   []
   (try
-    (let [port (System/getenv "PORT")
-          port (if port
-                 (read-string
-                   port)
-                 1602)
-          access-control-allow-origin #{"https://ocr:8451"
-                                        "https://ocr:1612"
-                                        "http://ocr:1612"
-                                        "https://ocr:1602"
-                                        "http://ocr:1602"
-                                        "https://192.168.1.86:1612"
-                                        "http://192.168.1.86:1612"
-                                        "https://192.168.1.86:1602"
-                                        "http://192.168.1.86:1602"
-                                        "http://ocr:8453"}
-          access-control-allow-origin (if (System/getenv "CLIENT_ORIGIN")
-                                        (conj
-                                          access-control-allow-origin
-                                          (System/getenv "CLIENT_ORIGIN"))
-                                        access-control-allow-origin)
-          access-control-allow-origin (if (System/getenv "SERVER_ORIGIN")
-                                        (conj
-                                          access-control-allow-origin
-                                          (System/getenv "SERVER_ORIGIN"))
-                                        access-control-allow-origin)
-          access-control-map {(rsh/access-control-allow-origin) access-control-allow-origin
-                              (rsh/access-control-allow-methods) "OPTIONS, GET, POST, DELETE, PUT"
-                              (rsh/access-control-allow-credentials) true}
-          certificates {:keystore-file-path
-                         "certificate/ocr_server.jks"
-                        :keystore-password
-                         "ultras12"}
-          certificates (when-not (System/getenv "CERTIFICATES")
-                         certificates)
-          thread-pool-size (System/getenv "THREAD_POOL_SIZE")]
-      (when thread-pool-size
-        (reset!
-          srvr/thread-pool-size
-          (read-string
-            thread-pool-size))
-       )
+    (let [port (config/define-port)
+          access-control-map (config/build-access-control-map)
+          certificates-map (config/build-certificates-map)]
+      (config/set-thread-pool-size)
       (srvr/start-server
         routing
         access-control-map
         port
-        certificates))
+        certificates-map))
     (mon/mongodb-connect
-      db-uri
-      db-name)
+      config/db-uri
+      config/db-name)
     (scripts/initialize-db-if-needed)
     (ssn/create-indexes)
     (catch Exception e
