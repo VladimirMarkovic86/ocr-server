@@ -9,7 +9,7 @@
                  [org.clojars.vladimirmarkovic86/utils-lib "0.4.6"]
                  [org.clojars.vladimirmarkovic86/ajax-lib "0.1.8"]
                  [org.clojars.vladimirmarkovic86/ocr-lib "0.2.7"]
-                 [org.clojars.vladimirmarkovic86/session-lib "0.2.12"]
+                 [org.clojars.vladimirmarkovic86/session-lib "0.2.13"]
                  [org.clojars.vladimirmarkovic86/common-server "0.3.20"]
                  [org.clojars.vladimirmarkovic86/ocr-middle "0.3.5"]
                  [org.clojars.vladimirmarkovic86/common-middle "0.2.5"]
