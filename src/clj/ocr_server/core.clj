@@ -2,7 +2,6 @@
   (:gen-class)
   (:require [session-lib.core :as ssn]
             [server-lib.core :as srvr]
-            [utils-lib.core :refer [parse-body]]
             [mongo-lib.core :as mon]
             [ocr-server.config :as config]
             [ocr-server.scripts :as scripts]
@@ -174,7 +173,7 @@
 (defn save-parameters
   "Save parameters for reading calibration"
   [request]
-  (let [request-body (parse-body
+  (let [request-body (:body
                        request)
         _id (:_id request-body)
         light-value (read-string
@@ -213,17 +212,17 @@
         :threads threads-value
         :rows-threads rows-threads-value
         :unknown-sign-count-limit unknown-sign-count-limit-value})
-     {:status  (stc/ok)
-      :headers {(eh/content-type) (mt/text-plain)}
-      :body    (str {:status "success"})}
+     {:status (stc/ok)
+      :headers {(eh/content-type) (mt/text-clojurescript)}
+      :body {:status "success"}}
      (catch Exception ex
        (println ex)
-       {:status  (stc/internal-server-error)
-        :headers {(eh/content-type) (mt/text-plain)}
-        :body    (str {:status  "error"
-                       :error-message (.getMessage ex)})}
-      ))
-   ))
+       {:status (stc/internal-server-error)
+        :headers {(eh/content-type) (mt/text-clojurescript)}
+        :body {:status "error"
+               :error-message (.getMessage ex)}})
+    ))
+ )
 
 (defn read-image-ws
   "Read image sent through websocket
@@ -231,109 +230,117 @@
   [request]
   (let [websocket (:websocket request)
         {websocket-message :websocket-message
-         websocket-output-fn :websocket-output-fn} websocket
-        request-body (read-string
-                       websocket-message)
-        _id (:_id request-body)
-        light-value (read-string
-                      (:light-value
-                        request-body))
-        contrast-value (read-string
-                         (:contrast-value
-                           request-body))
-        space-value (read-string
-                      (:space-value
-                        request-body))
-        hooks-value (read-string
-                      (:hooks-value
-                        request-body))
-        matching-value (read-string
-                         (:matching-value
-                           request-body))
-        threads-value (read-string
-                        (:threads-value
-                          request-body))
-        rows-threads-value (read-string
-                             (:rows-threads-value
+         websocket-output-fn :websocket-output-fn} websocket]
+    (try
+      (let [request-body (read-string
+                           websocket-message)
+            _id (:_id request-body)
+            light-value (read-string
+                          (:light-value
+                            request-body))
+            contrast-value (read-string
+                             (:contrast-value
                                request-body))
-        unknown-sign-count-limit-value (read-string
-                                         (or (:unknown-sign-count-limit-value
-                                               request-body)
-                                             "0"))
-        unknown-sign-count-limit-per-thread (when (and (number?
-                                                         unknown-sign-count-limit-value)
-                                                       (number?
-                                                         rows-threads-value)
-                                                       (< 0
-                                                          unknown-sign-count-limit-value)
-                                                       (< 0
-                                                          rows-threads-value))
-                                              (int
-                                                (/ unknown-sign-count-limit-value
-                                                   rows-threads-value))
-                                             )
-        document-signs (get-document-signs
-                         _id)
-        splitted-base64 (clojure.string/split
-                          (:image-src request-body)
-                          #"base64,")
-        image-base64 (get
-                       splitted-base64
-                       1)
-        image-byte-array (.decode
-                           base64-decoder
-                           image-base64)
-        [read-text
-         unknown-signs-images] (ocr/read-image-fn
-                                 image-byte-array
-                                 light-value
-                                 contrast-value
-                                 space-value
-                                 hooks-value
-                                 matching-value
-                                 threads-value
-                                 rows-threads-value
-                                 document-signs
-                                 unknown-sign-count-limit-per-thread)
-        unknown-signs-images-atom (atom [])]
-    (doseq [sign-image unknown-signs-images]
-      (let [image-os (ByteArrayOutputStream.)
-            debug (ImageIO/write
-                    sign-image
-                    "jpg"
-                    image-os)
-            new-image-byte-array (.toByteArray
-                                   image-os)
-            new-image-base64 (.encodeToString
-                               base64-encoder
-                               new-image-byte-array)
-            new-image-base64 (str
-                               (get
-                                 splitted-base64
-                                 0)
-                               "base64,"
-                               new-image-base64)]
-        (swap!
-          unknown-signs-images-atom
-          conj
-          new-image-base64))
-     )
-    (websocket-output-fn
-      (str
-        {:status "success"
-         :action "read-image"
-         :images @unknown-signs-images-atom
-         :read-text read-text}))
-    (websocket-output-fn
-      (str
-        {:status "close"})
-      -120)
-   ))
+            space-value (read-string
+                          (:space-value
+                            request-body))
+            hooks-value (read-string
+                          (:hooks-value
+                            request-body))
+            matching-value (read-string
+                             (:matching-value
+                               request-body))
+            threads-value (read-string
+                            (:threads-value
+                              request-body))
+            rows-threads-value (read-string
+                                 (:rows-threads-value
+                                   request-body))
+            unknown-sign-count-limit-value (read-string
+                                             (or (:unknown-sign-count-limit-value
+                                                   request-body)
+                                                 "0"))
+            unknown-sign-count-limit-per-thread (when (and (number?
+                                                             unknown-sign-count-limit-value)
+                                                           (number?
+                                                             rows-threads-value)
+                                                           (< 0
+                                                              unknown-sign-count-limit-value)
+                                                           (< 0
+                                                              rows-threads-value))
+                                                  (int
+                                                    (/ unknown-sign-count-limit-value
+                                                       rows-threads-value))
+                                                 )
+            document-signs (get-document-signs
+                             _id)
+            splitted-base64 (clojure.string/split
+                              (:image-src request-body)
+                              #"base64,")
+            image-base64 (get
+                           splitted-base64
+                           1)
+            image-byte-array (.decode
+                               base64-decoder
+                               image-base64)
+            [read-text
+             unknown-signs-images] (ocr/read-image-fn
+                                     image-byte-array
+                                     light-value
+                                     contrast-value
+                                     space-value
+                                     hooks-value
+                                     matching-value
+                                     threads-value
+                                     rows-threads-value
+                                     document-signs
+                                     unknown-sign-count-limit-per-thread)
+            unknown-signs-images-atom (atom [])]
+        (doseq [sign-image unknown-signs-images]
+          (let [image-os (ByteArrayOutputStream.)
+                debug (ImageIO/write
+                        sign-image
+                        "jpg"
+                        image-os)
+                new-image-byte-array (.toByteArray
+                                       image-os)
+                new-image-base64 (.encodeToString
+                                   base64-encoder
+                                   new-image-byte-array)
+                new-image-base64 (str
+                                   (get
+                                     splitted-base64
+                                     0)
+                                   "base64,"
+                                   new-image-base64)]
+            (swap!
+              unknown-signs-images-atom
+              conj
+              new-image-base64))
+         )
+        (websocket-output-fn
+          (str
+            {:status "success"
+             :action "read-image"
+             :images @unknown-signs-images-atom
+             :read-text read-text}))
+        (websocket-output-fn
+          (str
+            {:status "close"})
+          -120))
+      (catch Exception ex
+        (println ex)
+        (websocket-output-fn
+          (str
+            {:status "close"})
+          -120))
+     ))
+ )
 
 (defn save-sign
   "Save sign with document"
   [request]
-  (let [request-body (parse-body
+  (let [request-body (:body
                        request)
         {entity-type :entity-type
          {_id :_id} :entity-filter
@@ -356,9 +363,8 @@
       _id
       {:signs signs})
     {:status (stc/ok)
-     :headers {(eh/content-type) (mt/text-plain)}
-     :body (str
-             {:status "success"})})
+     :headers {(eh/content-type) (mt/text-clojurescript)}
+     :body {:status "success"}})
  )
 
 (def logged-in-routing-set
