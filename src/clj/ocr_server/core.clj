@@ -75,9 +75,8 @@
                   progress-value
                   (ocr/process-images-calculate-progress-value-fn))
                 (websocket-output-fn
-                  (str
-                    {:action "update-progress"
-                     :progress-value @progress-value}))
+                  {:action "update-progress"
+                   :progress-value @progress-value})
                 (Thread/sleep 500))
               ;PROGRESS BAR
               (ocr/process-images-reset-progress-value-fn))
@@ -121,16 +120,13 @@
     (future-cancel
       update-progress-thread)
     (websocket-output-fn
-      (str
-        {:action "update-progress"
-         :progress-value 100}))
+      {:action "update-progress"
+       :progress-value 100})
     (websocket-output-fn
-      (str
-        {:action "image-processed"
-         :srcs @new-images-base64}))
+      {:action "image-processed"
+       :srcs @new-images-base64})
     (websocket-output-fn
-      (str
-        {:status "close"})
+      {:status "close"}
       -120))
  )
 
@@ -319,20 +315,17 @@
               new-image-base64))
          )
         (websocket-output-fn
-          (str
-            {:status "success"
-             :action "read-image"
-             :images @unknown-signs-images-atom
-             :read-text read-text}))
+          {:status "success"
+           :action "read-image"
+           :images @unknown-signs-images-atom
+           :read-text read-text})
         (websocket-output-fn
-          (str
-            {:status "close"})
+          {:status "close"}
           -120))
       (catch Exception ex
         (println ex)
         (websocket-output-fn
-          (str
-            {:status "close"})
+          {:status "close"}
           -120))
      ))
  )
