@@ -33,19 +33,24 @@
   contrast-value
   image
   image-mime-type]
- (let [height (.getHeight image)
-       width (.getWidth image)
-       image (ocr/grayscale-contrast-fn
+ (let [image (ocr/grayscale-contrast-fn
                image
-               width
-               height
                light-value
                contrast-value)
        image-os (ByteArrayOutputStream.)
-       debug (ImageIO/write image "jpg" image-os)
-       new-image-byte-array (.toByteArray image-os)
-       new-image-base64 (.encodeToString base64-encoder new-image-byte-array)
-       new-image-base64 (str image-mime-type "base64," new-image-base64)]
+       void (ImageIO/write
+              image
+              "jpg"
+              image-os)
+       new-image-byte-array (.toByteArray
+                              image-os)
+       new-image-base64 (.encodeToString
+                          base64-encoder
+                          new-image-byte-array)
+       new-image-base64 (str
+                          image-mime-type
+                          "base64,"
+                          new-image-base64)]
    new-image-base64))
 
 (defn process-images-ws
@@ -148,7 +153,8 @@
            image-base64 (get
                           splitted-base64
                           1)
-           map-elem (if (vector? map-elem)
+           map-elem (if (vector?
+                          map-elem)
                       (conj
                         map-elem
                         (.decode
@@ -158,11 +164,11 @@
                          base64-decoder
                          image-base64)])]
        (swap!
-        decoded-signs
-        assoc
-        (keyword
-          sign-value)
-        map-elem))
+         decoded-signs
+         assoc
+         (keyword
+           sign-value)
+         map-elem))
     )
    @decoded-signs))
 
@@ -294,10 +300,10 @@
             unknown-signs-images-atom (atom [])]
         (doseq [sign-image unknown-signs-images]
           (let [image-os (ByteArrayOutputStream.)
-                debug (ImageIO/write
-                        sign-image
-                        "jpg"
-                        image-os)
+                void (ImageIO/write
+                       sign-image
+                       "jpg"
+                       image-os)
                 new-image-byte-array (.toByteArray
                                        image-os)
                 new-image-base64 (.encodeToString
