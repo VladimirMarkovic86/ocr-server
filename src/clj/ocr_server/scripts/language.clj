@@ -9,14 +9,26 @@
     language-cname
     {:code 62}
     {:$set
-      {:english "Optical character recognition app"
+      {:english "Optical Character Recognition App"
        :serbian "Оптичко препознавање карактера"}})
   (mon/mongodb-update-one
     language-cname
     {:code 63}
     {:$set
-      {:english "Optical character recognition app is based on sample app, and it implements optical character recognition algorithm."
+      {:english "Optical Character Recognition App is based on sample app, and it implements optical character recognition algorithm."
        :serbian "Оптичко препознавање карактера је апликација заснована на sample app пројекту, и имплементира алгоритам за препознавање знакова са слике."}})
+  (mon/mongodb-update-one
+    language-cname
+    {:code 81}
+    {:$set
+      {:english "Optical Character Recognition App reset password"
+       :serbian "Optical Character Recognition App промена лозинке"}})
+  (mon/mongodb-update-one
+    language-cname
+    {:code 82}
+    {:$set
+      {:english "A password reset was requested for Optical Character Recognition App account with this email address.<br>To continue password reset copy, paste and confirm code from below."
+       :serbian "Налог апликације Optical Character Recognition App са овом е-адресом захтева промену лозинке.<br>Да би наставили промену лозинке копирајте, налепите и потврдите следећи код."}})
   (mon/mongodb-insert-many
     language-cname
     [{ :code 1001 :english "Working area" :serbian "Радионица" }
