@@ -57,5 +57,6 @@
      { :code 1024 :english "Source" :serbian "Извор"}
      { :code 1025 :english "Known source" :serbian "Познати извор"}
      { :code 1026 :english "Unknown source" :serbian "Непознати извор"}
+     { :code 1027 :english "Document entity" :serbian "Ентитет документ"}
      ]))
 

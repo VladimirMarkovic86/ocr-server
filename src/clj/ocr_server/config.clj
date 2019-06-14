@@ -3,6 +3,8 @@
             [server-lib.core :as srvr]
             [ocr-server.document.entity :as documente]
             [common-server.core :as rt]
+            [common-server.preferences :as prf]
+            [ocr-server.preferences :as osprf]
             [common-middle.role-names :refer [chat-rname
                                               reports-rname]]
             [ocr-middle.role-names :refer [document-admin-rname
@@ -194,4 +196,11 @@
       rt/reset-password-mail-template-path
       reset-password-mail-template-path))
  )
+
+(defn bind-set-specific-preferences-fn
+  "Binds set specific preferences to common server atom"
+  []
+  (reset!
+    prf/set-specific-preferences-a-fn
+    osprf/set-specific-preferences-fn))
 

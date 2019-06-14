@@ -1,6 +1,7 @@
 (ns ocr-server.document.entity
   (:require [language-lib.core :refer [get-label]]
-            [ocr-middle.document.entity :as omde]))
+            [ocr-middle.document.entity :as omde]
+            [common-server.preferences :as prf]))
 
 (defn format-dtype-field
   "Formats dtype field"
@@ -31,7 +32,10 @@
 
 (defn reports
   "Returns reports projection"
-  [& [chosen-language]]
+  [request
+   & [chosen-language]]
+  (prf/set-preferences
+    request)
   {:entity-label (get-label
                    1002
                    chosen-language)
@@ -40,7 +44,12 @@
                 ;:image
                 ]
    :qsort {:dname 1}
-   :rows omde/rows
+   :rows (int
+           (omde/calculate-rows))
+   :table-rows (int
+                 @omde/table-rows-a)
+   :card-columns (int
+                   @omde/card-columns-a)
    :labels {:dname (get-label
                      1003
                      chosen-language)
