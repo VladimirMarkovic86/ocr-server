@@ -9,6 +9,7 @@
                                               reports-rname]]
             [ocr-middle.role-names :refer [document-admin-rname
                                            working-area-user-rname]]
+            [ocr-middle.functionalities-by-url :as omfns-by-url]
             [utils-lib.core-clj :as utilsclj]
             [pdflatex-lib.core :as tex]))
 
@@ -203,4 +204,9 @@
   (reset!
     prf/set-specific-preferences-a-fn
     osprf/set-specific-preferences-fn))
+
+(defn bind-specific-functionalities-by-url
+  "Binds specific functionalities by url"
+  []
+  (omfns-by-url/bind-specific-functionalities-by-url))
 

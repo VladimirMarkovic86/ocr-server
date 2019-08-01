@@ -53,9 +53,13 @@
                           new-image-base64)]
    new-image-base64))
 
-(defn process-images-ws
-  "Process image with parameters from front end"
+(defmethod rt/routing-fn
+  [rm/ws-GET
+   orurls/process-images-ws-url
+   :logged-in
+   :authorized]
   [request]
+  "Process image with parameters from front end"
   ;PROGRESS BAR
   (ocr/process-images-reset-progress-value-fn)
   (let [websocket (:websocket request)
@@ -172,64 +176,14 @@
     )
    @decoded-signs))
 
-(defn save-parameters
-  "Save parameters for reading calibration"
+(defmethod rt/routing-fn
+  [rm/ws-GET
+   orurls/read-image-ws-url
+   :logged-in
+   :authorized]
   [request]
-  (let [request-body (:body
-                       request)
-        _id (:_id request-body)
-        light-value (read-string
-                      (:light-value
-                        request-body))
-        contrast-value (read-string
-                         (:contrast-value
-                           request-body))
-        space-value (read-string
-                      (:space-value
-                        request-body))
-        hooks-value (read-string
-                      (:hooks-value
-                        request-body))
-        matching-value (read-string
-                         (:matching-value
-                           request-body))
-        threads-value (read-string
-                        (:threads-value
-                          request-body))
-        rows-threads-value (read-string
-                             (:rows-threads-value
-                               request-body))
-        unknown-sign-count-limit-value (read-string
-                                         (:unknown-sign-count-limit-value
-                                           request-body))]
-   (try
-     (mon/mongodb-update-by-id
-       "document"
-       _id
-       {:light light-value
-        :contrast contrast-value
-        :space space-value
-        :hooks hooks-value
-        :matching matching-value
-        :threads threads-value
-        :rows-threads rows-threads-value
-        :unknown-sign-count-limit unknown-sign-count-limit-value})
-     {:status (stc/ok)
-      :headers {(eh/content-type) (mt/text-clojurescript)}
-      :body {:status "success"}}
-     (catch Exception ex
-       (println ex)
-       {:status (stc/internal-server-error)
-        :headers {(eh/content-type) (mt/text-clojurescript)}
-        :body {:status "error"
-               :error-message (.getMessage ex)}})
-    ))
- )
-
-(defn read-image-ws
   "Read image sent through websocket
    and return results back to client"
-  [request]
   (let [websocket (:websocket request)
         {websocket-message :websocket-message
          websocket-output-fn :websocket-output-fn} websocket]
@@ -238,29 +192,21 @@
                            websocket-message)
             _id (:_id request-body)
             light-value (read-string
-                          (:light-value
-                            request-body))
+                          (:light-value request-body))
             contrast-value (read-string
-                             (:contrast-value
-                               request-body))
+                             (:contrast-value request-body))
             space-value (read-string
-                          (:space-value
-                            request-body))
+                          (:space-value request-body))
             hooks-value (read-string
-                          (:hooks-value
-                            request-body))
+                          (:hooks-value request-body))
             matching-value (read-string
-                             (:matching-value
-                               request-body))
+                             (:matching-value request-body))
             threads-value (read-string
-                            (:threads-value
-                              request-body))
+                            (:threads-value request-body))
             rows-threads-value (read-string
-                                 (:rows-threads-value
-                                   request-body))
+                                 (:rows-threads-value request-body))
             unknown-sign-count-limit-value (read-string
-                                             (or (:unknown-sign-count-limit-value
-                                                   request-body)
+                                             (or (:unknown-sign-count-limit-value request-body)
                                                  "0"))
             unknown-sign-count-limit-per-thread (when (and (number?
                                                              unknown-sign-count-limit-value)
@@ -336,11 +282,14 @@
      ))
  )
 
-(defn save-sign
-  "Save sign with document"
+(defmethod rt/routing-fn
+  [rm/POST
+   orurls/save-sign-url
+   :logged-in
+   :authorized]
   [request]
-  (let [request-body (:body
-                       request)
+  "Save sign with document"
+  (let [request-body (:body request)
         {entity-type :entity-type
          {_id :_id} :entity-filter
          sign-value :sign-value
@@ -363,38 +312,60 @@
       {:signs signs})
     {:status (stc/ok)
      :headers {(eh/content-type) (mt/text-clojurescript)}
-     :body {:status "success"}})
+     :body {:status "success"}}))
+
+(defmethod rt/routing-fn
+  [rm/POST
+   orurls/save-parameters-url
+   :logged-in
+   :authorized]
+  [request]
+  "Save parameters for reading calibration"
+  (let [request-body (:body request)
+        _id (:_id request-body)
+        light-value (read-string
+                      (:light-value request-body))
+        contrast-value (read-string
+                         (:contrast-value request-body))
+        space-value (read-string
+                      (:space-value request-body))
+        hooks-value (read-string
+                      (:hooks-value request-body))
+        matching-value (read-string
+                         (:matching-value request-body))
+        threads-value (read-string
+                        (:threads-value request-body))
+        rows-threads-value (read-string
+                             (:rows-threads-value request-body))
+        unknown-sign-count-limit-value (read-string
+                                         (:unknown-sign-count-limit-value request-body))]
+   (try
+     (mon/mongodb-update-by-id
+       "document"
+       _id
+       {:light light-value
+        :contrast contrast-value
+        :space space-value
+        :hooks hooks-value
+        :matching matching-value
+        :threads threads-value
+        :rows-threads rows-threads-value
+        :unknown-sign-count-limit unknown-sign-count-limit-value})
+     {:status (stc/ok)
+      :headers {(eh/content-type) (mt/text-clojurescript)}
+      :body {:status "success"}}
+     (catch Exception ex
+       (println ex)
+       {:status (stc/internal-server-error)
+        :headers {(eh/content-type) (mt/text-clojurescript)}
+        :body {:status "error"
+               :error-message (.getMessage ex)}})
+    ))
  )
-
-(def logged-in-routing-set
-  (atom
-    #{{:method rm/ws-GET
-       :uri orurls/process-images-ws-url
-       :authorization omfns/process-images
-       :action process-images-ws}
-      {:method rm/ws-GET
-       :uri orurls/read-image-ws-url
-       :authorization omfns/read-image
-       :action read-image-ws}
-      {:method rm/POST
-       :uri orurls/save-sign-url
-       :authorization omfns/save-sign
-       :action save-sign}
-      {:method rm/POST
-       :uri orurls/save-parameters-url
-       :authorization omfns/save-parameters
-       :action save-parameters}}))
-
-(def logged-out-routing-set
-  (atom
-    #{}))
 
 (defn routing
   "Routing function"
   [request]
-  (rt/add-new-routes
-    @logged-in-routing-set
-    @logged-out-routing-set)
   (let [response (rt/routing
                    request)]
     (when @config/audit-action-a
@@ -428,6 +399,7 @@
     (config/setup-e-mail-account)
     (config/setup-e-mail-templates-path)
     (config/bind-set-specific-preferences-fn)
+    (config/bind-specific-functionalities-by-url)
     (catch Exception e
       (println (.getMessage e))
      ))
