@@ -4,11 +4,11 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.9.0"]
-                 [org.clojars.vladimirmarkovic86/server-lib "0.3.35"]
+                 [org.clojars.vladimirmarkovic86/server-lib "0.3.36"]
                  [org.clojars.vladimirmarkovic86/mongo-lib "0.2.14"]
                  [org.clojars.vladimirmarkovic86/utils-lib "0.4.13"]
                  [org.clojars.vladimirmarkovic86/ajax-lib "0.1.14"]
-                 [org.clojars.vladimirmarkovic86/ocr-lib "0.2.19"]
+                 [org.clojars.vladimirmarkovic86/ocr-lib "0.2.20"]
                  [org.clojars.vladimirmarkovic86/session-lib "0.2.31"]
                  [org.clojars.vladimirmarkovic86/common-server "0.3.49"]
                  [org.clojars.vladimirmarkovic86/ocr-middle "0.3.13"]
